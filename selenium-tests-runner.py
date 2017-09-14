@@ -22,11 +22,11 @@ from lib.main import Main
 
 Main(
 
- selenium = args.selenium_server,
- url = args.tests_url,
- browser = args.browser,
- timeout = args.timeout,
- output = args.output,
- framework = args.framework,
- nosandbox = args.nosandbox
+  selenium = args.selenium_server,
+  url = args.tests_url,
+  browser = args.browser,
+  timeout = args.timeout,
+  output = args.output,
+  framework = args.framework,
+  nosandbox = args.nosandbox
 )

@@ -5,11 +5,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from . import selenium_process
 
-csd = os.path.dirname( os.path.abspath( __file__) )
-
 
 def Main( selenium = None, url = None, browser = None, timeout = None, output = None, framework = None, nosandbox = None ):
 
+  driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
 
   if ( selenium is None ):
@@ -29,6 +28,8 @@ def Main( selenium = None, url = None, browser = None, timeout = None, output = 
     sysPrint( "Connecting to selenium ..." )
 
     driver = webdriver.Remote( selenium, driver_browser )
+
+    sysPrint( "Selenium session id: %s" % ( driver.session_id ) )
 
     runTests( driver = driver, url = url, timeout = timeout, framework = framework, output = output )
 
@@ -63,8 +64,8 @@ def runTests( driver = None, url = None, timeout = None, framework = None, outpu
 
 def saveResults( xmlResults, outputFile ):
 
-  f = open( outputFile, "w" )
-  f.write( xmlResults )
+  f = open( outputFile, "wb" )
+  f.write( xmlResults.encode( "utf-8" ) )
   f.close()
 
 def printResults( results ):
