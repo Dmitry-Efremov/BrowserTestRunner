@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from . import selenium_process
 
 
-def Main( selenium = None, url = None, browser = None, timeout = None, output = None, framework = None, nosandbox = None ):
+def Main( selenium = None, url = None, platform = None, browser = None, browserVersion = None, screenResolution = None, timeout = None, output = None, framework = None, nosandbox = None ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
@@ -24,6 +24,15 @@ def Main( selenium = None, url = None, browser = None, timeout = None, output = 
 
     if not ( nosandbox is None ):
       driver_browser[ "chromeOptions" ] = { "args": [ "--no-sandbox" ] }
+
+    if not ( browserVersion is None ):
+      driver_browser[ "version" ] = browserVersion
+
+    if not ( screenResolution is None ):
+      driver_browser[ "screenResolution" ] = screenResolution
+
+    if not ( platform is None ):
+      driver_browser[ "platform" ] = platform
 
     sysPrint( "Connecting to selenium ..." )
 
