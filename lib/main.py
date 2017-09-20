@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from . import selenium_process
 
 
-def Main( seleniumServer = None, testUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None, timeout = None, output = None, framework = None, nosandbox = None ):
+def Main( seleniumServer = None, testsUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None, timeout = None, output = None, framework = None, nosandbox = None ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
@@ -40,7 +40,7 @@ def Main( seleniumServer = None, testUrl = None, platform = None, browser = None
 
     sysPrint( "Selenium session id: %s" % ( driver.session_id ) )
 
-    runTests( driver = driver, url = testUrl, timeout = timeout, framework = framework, output = output )
+    runTests( driver = driver, url = testsUrl, timeout = timeout, framework = framework, output = output )
 
   finally:
 
