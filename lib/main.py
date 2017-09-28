@@ -1,4 +1,4 @@
-import os, sys, time, requests, retrying, json
+import os, sys, requests, retrying
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -6,7 +6,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from . import selenium_process
 
 
-def Main( seleniumServer = None, testsUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None, timeout = None, output = None, framework = None, nosandbox = None ):
+def Main( seleniumServer = None, testsUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None,
+          framework = None, maxDuration = None, timeout = None, output = None, nosandbox = None ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
@@ -34,8 +35,8 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
     if not ( platform is None ):
       driver_browser[ "platform" ] = platform
 
-    if not ( timeout is None ):
-      driver_browser[ "maxDuration" ] = timeout
+    if not ( maxDuration is None ):
+      driver_browser[ "maxDuration" ] = maxDuration
 
     sysPrint( "Connecting to selenium ..." )
 
@@ -75,6 +76,11 @@ def runTests( driver = None, url = None, timeout = None, framework = None, outpu
     sysPrint( "JUnit xml saved to: " + output )
 
 def saveResults( xmlResults, outputFile ):
+
+  outputPath = os.path.dirname( outputFile )
+
+  if not os.path.exists( outputPath ):
+    os.makedirs( outputPath )
 
   f = open( outputFile, "wb" )
   f.write( xmlResults.encode( "utf-8" ) )
