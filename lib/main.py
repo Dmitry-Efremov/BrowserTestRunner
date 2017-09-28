@@ -34,6 +34,9 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
     if not ( platform is None ):
       driver_browser[ "platform" ] = platform
 
+    if not ( timeout is None ):
+      driver_browser[ "maxDuration" ] = timeout
+
     sysPrint( "Connecting to selenium ..." )
 
     driver = webdriver.Remote( seleniumServer, driver_browser )
