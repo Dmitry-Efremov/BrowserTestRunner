@@ -43,6 +43,7 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
     driver = webdriver.Remote( seleniumServer, driver_browser )
 
     sysPrint( "Selenium session id: %s" % ( driver.session_id ) )
+    sysPrint( "SauceOnDemandSessionID=%s" % ( driver.session_id ) )
 
     runTests( driver = driver, url = testsUrl, timeout = timeout, framework = framework, output = output )
 
