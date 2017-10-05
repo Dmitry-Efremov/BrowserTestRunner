@@ -7,7 +7,7 @@ from . import selenium_process
 
 
 def Main( seleniumServer = None, testsUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None,
-          framework = None, maxDuration = None, timeout = None, output = None, nosandbox = None ):
+          framework = None, maxDuration = None, tunnelId = None, output = None, nosandbox = None ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
@@ -38,14 +38,16 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
     if not ( maxDuration is None ):
       driver_browser[ "maxDuration" ] = maxDuration
 
+    if not ( tunnelId is None ):
+      driver_browser[ "tunnelIdentifier" ] = tunnelId
+
     sysPrint( "Connecting to selenium ..." )
 
     driver = webdriver.Remote( seleniumServer, driver_browser )
 
     sysPrint( "Selenium session id: %s" % ( driver.session_id ) )
-    sysPrint( "SauceOnDemandSessionID=%s" % ( driver.session_id ) )
 
-    runTests( driver = driver, url = testsUrl, timeout = timeout, framework = framework, output = output )
+    runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output )
 
   finally:
 

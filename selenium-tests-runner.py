@@ -14,7 +14,7 @@ argsParser.add_argument( "--browser-version", help = "Version of browser" )
 argsParser.add_argument( "--screen-resolution", help = "Screen resolution, default: 1024x768", default = "1024x768" )
 argsParser.add_argument( "--framework", help = "Javascript test framework used", required = True, choices = [ "jasmine", "qunit" ] )
 argsParser.add_argument( "--max-duration", help = "Maximum tests duration in seconds, default: 300.", type = int, default = 300 )
-argsParser.add_argument( "--timeout", help = "Selenium WebDriver timeout in seconds, default: 60.", type = int, default = 60 )
+argsParser.add_argument( "--tunnel-id", help = "SauceLabs tunnel identifier." )
 argsParser.add_argument( "--output", help = "Filename to store JUnit xml results." )
 argsParser.add_argument( "--nosandbox", help = "Option for Chrome webdriver: disables sandbox." )
 
@@ -35,7 +35,7 @@ Main(
   screenResolution = args.screen_resolution,
   framework = args.framework,
   maxDuration = args.max_duration,
-  timeout = args.timeout,
+  tunnelId = args.tunnel_id,
   output = args.output,
   nosandbox = args.nosandbox
 )
