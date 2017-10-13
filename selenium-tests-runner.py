@@ -17,6 +17,7 @@ argsParser.add_argument( "--max-duration", help = "Maximum tests duration in sec
 argsParser.add_argument( "--tunnel-id", help = "SauceLabs tunnel identifier." )
 argsParser.add_argument( "--output", help = "Filename to store JUnit xml results." )
 argsParser.add_argument( "--nosandbox", help = "Option for Chrome webdriver: disables sandbox." )
+argsParser.add_argument( "--prerun-script-url", help = "Url of the script executed before run." )
 
 args = argsParser.parse_args()
 
@@ -37,5 +38,6 @@ Main(
   maxDuration = args.max_duration,
   tunnelId = args.tunnel_id,
   output = args.output,
-  nosandbox = args.nosandbox
+  nosandbox = args.nosandbox,
+  prerunScriptUrl = args.prerun_script_url
 )
