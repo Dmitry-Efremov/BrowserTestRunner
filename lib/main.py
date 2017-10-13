@@ -19,7 +19,6 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
     seleniumServer = selenium_process.run_selenium_process()
     waitSeleniumPort( seleniumServer )
 
-    
   try:
 
     driver_browser = getattr( webdriver.DesiredCapabilities, browser.upper() )
