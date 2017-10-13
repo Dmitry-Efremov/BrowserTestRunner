@@ -7,7 +7,7 @@ from . import selenium_process
 
 
 def Main( seleniumServer = None, testsUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None,
-          framework = None, maxDuration = None, tunnelId = None, output = None, nosandbox = None ):
+          framework = None, maxDuration = None, tunnelId = None, output = None, nosandbox = None, prerunScriptUrl = None ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
@@ -19,6 +19,7 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
     seleniumServer = selenium_process.run_selenium_process()
     waitSeleniumPort( seleniumServer )
 
+    
   try:
 
     driver_browser = getattr( webdriver.DesiredCapabilities, browser.upper() )
@@ -41,6 +42,9 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
     if not ( tunnelId is None ):
       driver_browser[ "tunnelIdentifier" ] = tunnelId
 
+    if not ( prerunScriptUrl is None ):
+      driver_browser[ "prerun" ] = { "executable": prerunScriptUrl, "background": "false" }
+    
     sysPrint( "Connecting to selenium ..." )
 
     driver = webdriver.Remote( seleniumServer, driver_browser )
