@@ -1,9 +1,9 @@
-import os, sys, requests, retrying
+import os, sys, requests, retrying, json
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
-from . import selenium_process
+from lib import selenium_process, log
 
 
 def Main( seleniumServer = None, testsUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None,
@@ -14,7 +14,7 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
 
   if ( seleniumServer is None ):
 
-    sysPrint( "Starting selenium ..." )
+    log.writeln( "Starting selenium ..." )
 
     seleniumServer = selenium_process.run_selenium_process()
     waitSeleniumPort( seleniumServer )
@@ -43,12 +43,13 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
 
     if not ( prerunScriptUrl is None ):
       driver_browser[ "prerun" ] = { "executable": prerunScriptUrl, "background": "false" }
-    
-    sysPrint( "Connecting to selenium ..." )
+
+    log.writeln( "Connecting to selenium ..." )
 
     driver = webdriver.Remote( seleniumServer, driver_browser )
+    driver.set_page_load_timeout( 60 )
 
-    sysPrint( "Selenium session id: %s" % ( driver.session_id ) )
+    log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
 
     runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output )
 
@@ -66,20 +67,15 @@ def waitSeleniumPort( url ):
 
 def runTests( driver = None, url = None, timeout = None, framework = None, output = None ):
 
-  sysPrint( "Running tests ..." )
+  log.writeln( "Running tests ..." )
 
-  driver.get( url )
-
-  WebDriverWait( driver, timeout ).until( framework.isFinished )
-
-  results = framework.GetResults( driver )
-  printResults( results )
+  results = framework.RunTests( driver, url, timeout )
+  printResults( results[ "json" ] )
 
   if ( output ):
 
-    results = framework.GetXmlResults( driver )
-    saveResults( results, output )
-    sysPrint( "JUnit xml saved to: " + output )
+    saveResults( results[ "junit" ], output )
+    log.writeln( "JUnit xml saved to: " + output )
 
 def saveResults( xmlResults, outputFile ):
 
@@ -94,13 +90,7 @@ def saveResults( xmlResults, outputFile ):
 
 def printResults( results ):
 
-  sysPrint( "Results:" )
-  sysPrint( "  Passed: %r" % results[ "passed" ] )
-  sysPrint( "  Duration: %f" % results[ "durationSec" ] )
-  sysPrint( "  Suites: %d" % len( results[ "suites" ] ) )
-
-def sysPrint( line = "" ):
-
-  sys.stdout.flush()
-  sys.stdout.write( line + "\n" )
-  sys.stdout.flush()
+  log.writeln( "Results:" )
+  log.writeln( "  Passed: %r" % results[ "passed" ] )
+  log.writeln( "  Duration: %f" % results[ "durationSec" ] )
+  log.writeln( "  Suites: %d" % len( results[ "suites" ] ) )
