@@ -64,7 +64,7 @@ def RunTests( driver, url, timeout ):
 def getTests( driver, url ):
 
     driver.get( "%s?spec=SkipAll" % url )
-    WebDriverWait( driver, 60 ).until( isFinished ) # need to decrease timeout value here
+    WebDriverWait( driver, 60 ).until( isFinished )
     selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
     specs = json.loads( driver.execute_script( selector ) )
     return list( map( lambda x: "%s?spec=%s" % ( url, urllib.quote( x ) ), specs ) )
@@ -103,7 +103,7 @@ def reduceSuite( parentSuite ):
 
 def reduceXmlSuite( suites ):
 
-    suite = list( filter( lambda s: round( float( s.attrib[ 'time' ] ), 1 ) != 0, suites.findall( 'testsuite' ) ) ).pop()
+    suite = max( list( suites.findall( 'testsuite' ) ), key=lambda s: float( s.attrib[ 'time' ] ) )
     for testcase in list( filter( lambda x: x.getchildren(), suite ) ):
 
         suite.remove( testcase )
