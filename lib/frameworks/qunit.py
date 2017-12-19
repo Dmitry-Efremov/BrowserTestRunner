@@ -1,4 +1,11 @@
 import json
+from selenium.webdriver.support.ui import WebDriverWait
+
+def runTests( driver, url, timeout ):
+
+    driver.get( url )
+    WebDriverWait( driver, timeout ).until( isFinished )
+    return GetResults( driver )
 
 def isFinished( driver ):
 

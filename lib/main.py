@@ -1,4 +1,6 @@
-import os, sys, requests, retrying
+import os, sys, requests, retrying, json
+
+from concurrent import futures
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -43,18 +45,28 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
 
     if not ( prerunScriptUrl is None ):
       driver_browser[ "prerun" ] = { "executable": prerunScriptUrl, "background": "false" }
-    
+    driver_browser[ "idleTimeout" ] = 300
+
     sysPrint( "Connecting to selenium ..." )
 
-    driver = webdriver.Remote( seleniumServer, driver_browser )
+    def getDriver( seleniumServer, driver_browser ):
+      return webdriver.Remote( seleniumServer, driver_browser )
 
-    sysPrint( "Selenium session id: %s" % ( driver.session_id ) )
+    drivers = []
+    with futures.ThreadPoolExecutor(max_workers=5) as executor:
+      executions = []
+      for i in range(0, 5):
+        executions.append( executor.submit( getDriver, seleniumServer, driver_browser ) )
+      for execution in executions:
+        drivers.append( execution.result() )
 
-    runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output )
+    #sysPrint( "Selenium session id: %s" % ( driver.session_id ) )
+
+    runTests( drivers = drivers, url = testsUrl, timeout = maxDuration, framework = framework, output = output )
 
   finally:
 
-    if driver:
+    for driver in drivers:
       driver.quit()
 
     selenium_process.stop_selenium_process()
@@ -64,21 +76,18 @@ def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
 
-def runTests( driver = None, url = None, timeout = None, framework = None, output = None ):
+def runTests( drivers = None, url = None, timeout = None, framework = None, output = None ):
 
   sysPrint( "Running tests ..." )
 
-  driver.get( url )
+  results = framework.runTests( drivers, url, timeout )
 
-  WebDriverWait( driver, timeout ).until( framework.isFinished )
-
-  results = framework.GetResults( driver )
   printResults( results )
 
   if ( output ):
 
-    results = framework.GetXmlResults( driver )
-    saveResults( results, output )
+    #results = framework.GetXmlResults( driver )
+    saveResults( json.dumps( results, indent=4 ), output )
     sysPrint( "JUnit xml saved to: " + output )
 
 def saveResults( xmlResults, outputFile ):
