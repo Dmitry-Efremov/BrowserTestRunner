@@ -81,7 +81,7 @@ def saveResults( xmlResults, outputFile ):
 
   outputPath = os.path.dirname( outputFile )
 
-  if not os.path.exists( outputPath ):
+  if outputPath and not os.path.exists( outputPath ):
     os.makedirs( outputPath )
 
   f = open( outputFile, "wb" )
