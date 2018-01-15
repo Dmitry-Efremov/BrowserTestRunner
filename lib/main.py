@@ -6,8 +6,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from lib import selenium_process, log
 
 
-def Main( seleniumServer = None, testsUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None,
-          framework = None, maxDuration = None, tunnelId = None, output = None, nosandbox = None, prerunScriptUrl = None ):
+def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
+          maxDuration = None, tunnelId = None, output = None, nosandbox = False, prerunScriptUrl = None, oneByOne = False ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
@@ -23,7 +23,7 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
 
     driver_browser = getattr( webdriver.DesiredCapabilities, browser.upper() )
 
-    if not ( nosandbox is None ):
+    if nosandbox:
       driver_browser[ "chromeOptions" ] = { "args": [ "--no-sandbox" ] }
 
     if not ( browserVersion is None ):
@@ -51,7 +51,7 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
 
     log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
 
-    runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output )
+    runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne )
 
   finally:
 
@@ -65,16 +65,37 @@ def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
 
-def runTests( driver = None, url = None, timeout = None, framework = None, output = None ):
+def runTests( driver, url, timeout, framework, output = None, oneByOne = False ):
 
-  log.writeln( "Running tests ..." )
+  if oneByOne:
 
-  results = framework.RunTests( driver, url, timeout )
-  printResults( results[ "json" ] )
+    log.writeln( "Running tests one by one" )
+
+    results = framework.runTests( driver, url, timeout )
+
+    jsonResults = results[ "json" ]
+    xmlResults = results[ "junit" ]
+
+  else:
+
+    log.writeln( "Running tests ..." )
+
+    driver.get( url )
+    WebDriverWait( driver, timeout ).until( framework.isFinished )
+
+    log.writeln( "Retrieving results ..." )
+
+    jsonResults = framework.getResults( driver )
+
+    if ( output ):
+
+      xmlResults = framework.getXmlResults( driver )
+
+  printResults( jsonResults )
 
   if ( output ):
 
-    saveResults( results[ "junit" ], output )
+    saveResults( xmlResults, output )
     log.writeln( "JUnit xml saved to: " + output )
 
 def saveResults( xmlResults, outputFile ):

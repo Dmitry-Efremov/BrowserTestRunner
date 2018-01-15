@@ -1,7 +1,7 @@
 import json
 from selenium.webdriver.support.ui import WebDriverWait
 
-def RunTests( driver, url, timeout ):
+def runTests( driver, url, timeout ):
 
     driver.get( url )
     WebDriverWait( driver, timeout ).until( isFinished )

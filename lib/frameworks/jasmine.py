@@ -5,14 +5,17 @@ from xml.etree import ElementTree
 from lib import log
 
 
-def RunTests( driver, url, timeout ):
+def runTests( driver, url, timeout ):
 
     # timeout is ignored
+
+    log.write( "Calculating number of tests ... " )
     tests = getTests( driver, url )
-    testResults = []
-    counter = 0
 
     log.writeln( "%d tests found" % len( tests ) )
+
+    testResults = []
+    counter = 0
 
     for test in tests:
 
@@ -61,7 +64,7 @@ def RunTests( driver, url, timeout ):
             "passed": all( map( lambda x: x[ "passed" ], suites ) )
         },
 
-        "junit": '<?xml version="1.0" encoding="UTF-8" ?><testsuites>%s</testsuites>' % "".join( xmlSuites )
+        "junit": '<?xml version="1.0" encoding="UTF-8" ?>\n<testsuites>\n%s\n</testsuites>\n' % "\n".join( xmlSuites )
     }
 
     return testResults
@@ -113,7 +116,7 @@ def reduceXmlSuite( suites ):
 
     suite = max( list( suites.findall( 'testsuite' ) ), key=lambda s: float( s.attrib[ 'time' ] ) )
 
-    for testcase in list( filter( lambda x: x.getchildren(), suite ) ):
+    for testcase in list( filter( lambda x: x.find( "skipped" ) is not None, suite ) ):
         suite.remove( testcase )
 
     return suite
