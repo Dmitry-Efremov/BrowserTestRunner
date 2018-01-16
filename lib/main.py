@@ -7,7 +7,7 @@ from lib import selenium_process, log
 
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
-          maxDuration = None, tunnelId = None, output = None, nosandbox = False, prerunScriptUrl = None, oneByOne = False ):
+          maxDuration = None, tunnelId = None, output = None, chromeOptions = None, prerunScriptUrl = None, oneByOne = False ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
@@ -23,8 +23,9 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     driver_browser = getattr( webdriver.DesiredCapabilities, browser.upper() )
 
-    if nosandbox:
-      driver_browser[ "chromeOptions" ] = { "args": [ "--no-sandbox" ] }
+    if chromeOptions:
+      opts = chromeOptions.split( "," )
+      driver_browser[ "chromeOptions" ] = { "args": opts }
 
     if not ( browserVersion is None ):
       driver_browser[ "version" ] = browserVersion

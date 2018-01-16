@@ -49,8 +49,8 @@ def runTests( driver, url, timeout ):
 
         else:
 
-            log.writeln( "error" )
-            log.writeln( "Test skipped: \"%s\", exceptions: [%s]" % ( test, "\n".join( [ str( exception ) for exception in exceptions ] ) ) )
+            log.writeln( "fatal error" )
+            raise Exception( "\n".join( [ "\n" + str( exception ) for exception in exceptions ] ) )
 
     suites = groupTestSuites( map( lambda x: x[ "json" ], testResults ) )
     xmlSuites = map( lambda x: ElementTree.tostring( x ), groupXmlSuites( map( lambda x: x[ "junit" ], testResults ) ) )
