@@ -4,7 +4,7 @@
 import argparse
 
 
-argsParser = argparse.ArgumentParser( description = "Run selenium tests in specified browser" )
+argsParser = argparse.ArgumentParser( description = "Run selenium tests in specified browser", formatter_class = argparse.RawTextHelpFormatter )
 
 argsParser.add_argument( "--selenium-server", help = "URL of a selenium server. A selenium server will be started locally if this argument is not specified." )
 argsParser.add_argument( "--tests-url", help = "URL where tests are served", required = True )
@@ -16,8 +16,9 @@ argsParser.add_argument( "--framework", help = "Javascript test framework used",
 argsParser.add_argument( "--max-duration", help = "Maximum tests duration in seconds, default: 300.", type = int, default = 300 )
 argsParser.add_argument( "--tunnel-id", help = "SauceLabs tunnel identifier." )
 argsParser.add_argument( "--output", help = "Filename to store JUnit xml results." )
-argsParser.add_argument( "--nosandbox", help = "Option for Chrome webdriver: disables sandbox." )
+argsParser.add_argument( "--chrome-options", help = "Options for Chrome webdriver separated by commas, example: --chrome-options=\"--js-flags=--expose-gc,--enable-precise-memory-info\"" )
 argsParser.add_argument( "--prerun-script-url", help = "Url of the script executed before run." )
+argsParser.add_argument( "--one-by-one", action = "store_true", help = "Run tests one by one." )
 
 args = argsParser.parse_args()
 
@@ -28,16 +29,17 @@ from lib.main import Main
 
 Main(
 
-  seleniumServer = args.selenium_server,
   testsUrl = args.tests_url,
-  platform = args.platform,
   browser = args.browser,
+  framework = args.framework,
+  seleniumServer = args.selenium_server,
+  platform = args.platform,
   browserVersion = args.browser_version,
   screenResolution = args.screen_resolution,
-  framework = args.framework,
   maxDuration = args.max_duration,
   tunnelId = args.tunnel_id,
   output = args.output,
-  nosandbox = args.nosandbox,
-  prerunScriptUrl = args.prerun_script_url
+  chromeOptions = args.chrome_options,
+  prerunScriptUrl = args.prerun_script_url,
+  oneByOne = args.one_by_one
 )

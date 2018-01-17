@@ -1,20 +1,20 @@
-import os, sys, requests, retrying
+import os, sys, requests, retrying, json
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
-from . import selenium_process
+from lib import selenium_process, log
 
 
-def Main( seleniumServer = None, testsUrl = None, platform = None, browser = None, browserVersion = None, screenResolution = None,
-          framework = None, maxDuration = None, tunnelId = None, output = None, nosandbox = None, prerunScriptUrl = None ):
+def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
+          maxDuration = None, tunnelId = None, output = None, chromeOptions = None, prerunScriptUrl = None, oneByOne = False ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
 
   if ( seleniumServer is None ):
 
-    sysPrint( "Starting selenium ..." )
+    log.writeln( "Starting selenium ..." )
 
     seleniumServer = selenium_process.run_selenium_process()
     waitSeleniumPort( seleniumServer )
@@ -23,8 +23,9 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
 
     driver_browser = getattr( webdriver.DesiredCapabilities, browser.upper() )
 
-    if not ( nosandbox is None ):
-      driver_browser[ "chromeOptions" ] = { "args": [ "--no-sandbox" ] }
+    if chromeOptions:
+      opts = chromeOptions.split( "," )
+      driver_browser[ "chromeOptions" ] = { "args": opts }
 
     if not ( browserVersion is None ):
       driver_browser[ "version" ] = browserVersion
@@ -43,14 +44,15 @@ def Main( seleniumServer = None, testsUrl = None, platform = None, browser = Non
 
     if not ( prerunScriptUrl is None ):
       driver_browser[ "prerun" ] = { "executable": prerunScriptUrl, "background": "false" }
-    
-    sysPrint( "Connecting to selenium ..." )
+
+    log.writeln( "Connecting to selenium ..." )
 
     driver = webdriver.Remote( seleniumServer, driver_browser )
+    driver.set_page_load_timeout( 60 )
 
-    sysPrint( "Selenium session id: %s" % ( driver.session_id ) )
+    log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
 
-    runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output )
+    runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne )
 
   finally:
 
@@ -64,28 +66,44 @@ def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
 
-def runTests( driver = None, url = None, timeout = None, framework = None, output = None ):
+def runTests( driver, url, timeout, framework, output = None, oneByOne = False ):
 
-  sysPrint( "Running tests ..." )
+  if oneByOne:
 
-  driver.get( url )
+    log.writeln( "Running tests one by one" )
 
-  WebDriverWait( driver, timeout ).until( framework.isFinished )
+    results = framework.runTests( driver, url, timeout )
 
-  results = framework.GetResults( driver )
-  printResults( results )
+    jsonResults = results[ "json" ]
+    xmlResults = results[ "junit" ]
+
+  else:
+
+    log.writeln( "Running tests ..." )
+
+    driver.get( url )
+    WebDriverWait( driver, timeout ).until( framework.isFinished )
+
+    log.writeln( "Retrieving results ..." )
+
+    jsonResults = framework.getResults( driver )
+
+    if ( output ):
+
+      xmlResults = framework.getXmlResults( driver )
+
+  printResults( jsonResults )
 
   if ( output ):
 
-    results = framework.GetXmlResults( driver )
-    saveResults( results, output )
-    sysPrint( "JUnit xml saved to: " + output )
+    saveResults( xmlResults, output )
+    log.writeln( "JUnit xml saved to: " + output )
 
 def saveResults( xmlResults, outputFile ):
 
   outputPath = os.path.dirname( outputFile )
 
-  if not os.path.exists( outputPath ):
+  if outputPath and not os.path.exists( outputPath ):
     os.makedirs( outputPath )
 
   f = open( outputFile, "wb" )
@@ -94,13 +112,7 @@ def saveResults( xmlResults, outputFile ):
 
 def printResults( results ):
 
-  sysPrint( "Results:" )
-  sysPrint( "  Passed: %r" % results[ "passed" ] )
-  sysPrint( "  Duration: %f" % results[ "durationSec" ] )
-  sysPrint( "  Suites: %d" % len( results[ "suites" ] ) )
-
-def sysPrint( line = "" ):
-
-  sys.stdout.flush()
-  sys.stdout.write( line + "\n" )
-  sys.stdout.flush()
+  log.writeln( "Results:" )
+  log.writeln( "  Passed: %r" % results[ "passed" ] )
+  log.writeln( "  Duration: %f" % results[ "durationSec" ] )
+  log.writeln( "  Suites: %d" % len( results[ "suites" ] ) )
