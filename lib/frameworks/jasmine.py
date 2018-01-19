@@ -189,12 +189,12 @@ def isFinished( driver ):
 
 def getResults( driver ):
 
-  selector = "return JSON.stringify( jasmine.getJSReport() )"
+  selector = "try { return JSON.stringify( jasmine.getJSReport() ) } catch ( e ) { return undefined }"
   results = driver.execute_script( selector )
-  return json.loads( results )
+  return json.loads( results ) if results else None
 
 def getXmlResults( driver ):
 
-  selector = 'return jasmine.JUnitXmlReporter.outputXml'
+  selector = ' try { return jasmine.JUnitXmlReporter.outputXml } catch ( e ) { return undefined }'
   results = driver.execute_script( selector )
   return results
