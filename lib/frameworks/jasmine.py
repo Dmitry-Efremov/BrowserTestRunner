@@ -4,6 +4,8 @@ from itertools import groupby
 from xml.etree import ElementTree
 from lib import log
 
+webDriverWaitTimeout = 300
+
 
 def runTests( driver, url, timeout ):
 
@@ -66,7 +68,7 @@ def runTests( driver, url, timeout ):
 def getTests( driver, url ):
 
     driver.get( "%s?spec=SkipAll" % url )
-    WebDriverWait( driver, 60 ).until( isFinished )
+    WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
     selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
     specs = json.loads( driver.execute_script( selector ) )
@@ -77,14 +79,14 @@ def getTests( driver, url ):
 def runTest( driver, url ):
 
     driver.get( url )
-    WebDriverWait( driver, 60 ).until( isFinished )
+    WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
-    testResult = WebDriverWait( driver, 5 ).until( getResults )
+    testResult = WebDriverWait( driver, webDriverWaitTimeout ).until( getResults )
 
     jsonResult = filterByDuration( testResult[ "suites" ] ).pop()
     reduceSuite( jsonResult )
 
-    xmlResult = reduceXmlSuite( ElementTree.fromstring( WebDriverWait( driver, 5 ).until( getXmlResults ) ) )
+    xmlResult = reduceXmlSuite( ElementTree.fromstring( WebDriverWait( driver, webDriverWaitTimeout ).until( getXmlResults ) ) )
 
     return {
 
