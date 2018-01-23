@@ -5,6 +5,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from lib import selenium_process, log
 
+webDriverWaitTimeout = 300
+
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
           maxDuration = None, tunnelId = None, output = None, chromeOptions = None, prerunScriptUrl = None, oneByOne = False ):
@@ -48,7 +50,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
     log.writeln( "Connecting to selenium ..." )
 
     driver = webdriver.Remote( seleniumServer, driver_browser )
-    driver.set_page_load_timeout( 60 )
+    driver.set_page_load_timeout( webDriverWaitTimeout )
 
     log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
 
