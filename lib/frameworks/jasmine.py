@@ -4,6 +4,8 @@ from itertools import groupby
 from xml.etree import ElementTree
 from lib import log
 
+webDriverWaitTimeout = 300
+
 
 def runTests( driver, url, timeout ):
 
@@ -22,7 +24,6 @@ def runTests( driver, url, timeout ):
         retries = 5
         passed = False
         testResult = None
-        exceptions = []
         counter += 1
 
         log.write( "Running test %d: %s ... " % ( counter, test ) )
@@ -38,19 +39,13 @@ def runTests( driver, url, timeout ):
                 if isPassed( testResult[ "json" ] ):
                     passed = True
 
-            except Exception as exception:
+            except Exception:
 
-                exceptions.append( exception )
+                log.writeln( "fatal error" )
+                raise
 
-        if testResult:
-
-            log.writeln( "passed" ) if passed else log.writeln( "failed" )
-            testResults.append( testResult )
-
-        else:
-
-            log.writeln( "fatal error" )
-            raise Exception( "\n".join( [ "\n" + str( exception ) for exception in exceptions ] ) )
+        log.writeln( "passed" ) if passed else log.writeln( "failed" )
+        testResults.append( testResult )
 
     suites = groupTestSuites( map( lambda x: x[ "json" ], testResults ) )
     xmlSuites = map( lambda x: ElementTree.tostring( x ), groupXmlSuites( map( lambda x: x[ "junit" ], testResults ) ) )
@@ -73,7 +68,7 @@ def runTests( driver, url, timeout ):
 def getTests( driver, url ):
 
     driver.get( "%s?spec=SkipAll" % url )
-    WebDriverWait( driver, 60 ).until( isFinished )
+    WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
     selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
     specs = json.loads( driver.execute_script( selector ) )
@@ -84,12 +79,15 @@ def getTests( driver, url ):
 def runTest( driver, url ):
 
     driver.get( url )
-    WebDriverWait( driver, 60 ).until( isFinished )
-    testResult = WebDriverWait( driver, 5 ).until( getResults )
+    WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
+
+    testResult = WebDriverWait( driver, webDriverWaitTimeout ).until( getResults )
 
     jsonResult = filterByDuration( testResult[ "suites" ] ).pop()
     reduceSuite( jsonResult )
-    xmlResult = reduceXmlSuite( ElementTree.fromstring( WebDriverWait( driver, 5 ).until( getXmlResults ) ) )
+
+    xmlResult = reduceXmlSuite( ElementTree.fromstring( WebDriverWait( driver, webDriverWaitTimeout ).until( getXmlResults ) ) )
+
     return {
 
         "json": jsonResult,
@@ -173,16 +171,32 @@ def groupXmlSuites( suites ):
 
 def isFinished( driver ):
 
-  return driver.find_element_by_css_selector( ".duration" ).text.startswith( "finished" )
+  try:
+
+    results = getResults( driver )
+
+  except Exception:
+
+    results = None
+
+  try:
+
+    xmlResults = getXmlResults( driver )
+
+  except Exception:
+
+    xmlResults = None
+
+  return ( results is not None ) and ( xmlResults is not None )
 
 def getResults( driver ):
 
-  selector = "return JSON.stringify( jasmine.getJSReport() )"
+  selector = "try { return JSON.stringify( jasmine.getJSReport() ) } catch ( e ) { return undefined }"
   results = driver.execute_script( selector )
-  return json.loads( results )
+  return json.loads( results ) if results else None
 
 def getXmlResults( driver ):
 
-  selector = 'return jasmine.JUnitXmlReporter.outputXml'
+  selector = ' try { return jasmine.JUnitXmlReporter.outputXml } catch ( e ) { return undefined }'
   results = driver.execute_script( selector )
   return results
