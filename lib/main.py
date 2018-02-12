@@ -9,7 +9,7 @@ webDriverWaitTimeout = 300
 
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
-          maxDuration = None, tunnelId = None, output = None, chromeOptions = None, prerunScriptUrl = None, oneByOne = False ):
+          maxDuration = None, tunnelId = None, output = None, chromeOptions = None, prerunScriptUrl = None, oneByOne = False, avoidProxy = False ):
 
   driver = None
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
@@ -46,6 +46,9 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     if not ( prerunScriptUrl is None ):
       driver_browser[ "prerun" ] = { "executable": prerunScriptUrl, "background": "false" }
+
+    if avoidProxy:
+      driver_browser[ "avoidProxy" ] = True
 
     log.writeln( "Connecting to selenium ..." )
 
