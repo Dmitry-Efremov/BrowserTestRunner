@@ -54,18 +54,11 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     log.writeln( "Connecting to selenium ..." )
 
-    # driver = webdriver.Remote( seleniumServer, driver_browser )
-    # driver.set_page_load_timeout( webDriverWaitTimeout )
-
-    # log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
-    
     from concurrent import futures
     
     with futures.ThreadPoolExecutor(max_workers=2) as executor:
       executions = []
       for i in range(0, 2):
-        log.writeln(str(i))
-        log.writeln("Olega@@@@@@@@@@@@@@@")
         executions.append( executor.submit( getDriver, seleniumServer, driver_browser ) )
       for execution in executions:
         drivers.append( execution.result() )
@@ -84,7 +77,6 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
 def getDriver( seleniumServer, driver_browser ):
   
-  log.writeln("Olega444444444")
   driver = webdriver.Remote( seleniumServer, driver_browser )
   driver.set_page_load_timeout( webDriverWaitTimeout )
   log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
