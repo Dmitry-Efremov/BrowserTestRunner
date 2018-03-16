@@ -1,4 +1,4 @@
-import json, retrying, urllib
+import json, retrying, urllib, sys
 from selenium.webdriver.support.ui import WebDriverWait
 from itertools import groupby
 from xml.etree import ElementTree
@@ -6,7 +6,73 @@ from lib import log
 
 webDriverWaitTimeout = 300
 
+from concurrent import futures
 
+def runTestsInParallel( drivers, url, timeout ):
+
+
+    driver = drivers[0]
+    driver.get( url )
+    log.write( "Calculating number of tests ... " )
+    tests = getTests( driver, url.replace(":8084", ":8085") )
+
+    log.writeln( "%d tests found" % len( tests ) )
+
+    newDrivers = []
+    port = 8085
+    for driver in drivers:
+        newDrivers.append( {"driver": driver, "port": ":" + str(port) } )
+        port = port + 1
+    drivers = newDrivers
+
+    testResults = []
+    counter = 0
+
+    with futures.ThreadPoolExecutor( max_workers=len( drivers ) ) as executor:
+      executions = []
+      for test in tests:
+          test_url = "%s?spec=%s" % ( url, urllib.quote( test ) )
+          log.write( "Running test %d: %s ... " % ( counter, test_url ) )
+          executions.append( executor.submit( runTestByDriversPool, drivers, test_url, 60 ) )
+          counter += 1
+      for execution in executions:
+          exception = execution.exception()
+          if exception is not None:
+              sys.stdout.flush()
+              sys.stdout.write( "Got exception that broke everything: " + str( exception ) + "\n" )
+              sys.stdout.flush()
+          else:
+              testResults.append( execution.result() )
+                
+    log.writeln( str(testResults) )
+    suites = groupTestSuites( map( lambda x: x[ "json" ], testResults ) )
+    xmlSuites = map( lambda x: ElementTree.tostring( x ), groupXmlSuites( map( lambda x: x[ "junit" ], testResults ) ) )
+
+    testResults = {
+
+        "json": {
+
+            "suites": suites,
+            "durationSec": sum( map( lambda x: x[ "durationSec" ], suites ) ),
+            "passed": all( map( lambda x: x[ "passed" ], suites ) )
+        },
+
+        "junit": '<?xml version="1.0" encoding="UTF-8" ?>\n<testsuites>\n%s\n</testsuites>\n' % "\n".join( xmlSuites )
+    }
+
+    return testResults
+
+def runTestByDriversPool( driversPool, url, timeout ):
+
+  driver = None
+  try:
+      driver = driversPool.pop()
+      log.writeln( url )
+      return runTest( driver["driver"], url.replace(":8084", driver["port"]) )
+  finally:
+      if driver:
+          driversPool.append( driver )
+    
 def runTests( driver, url, timeout ):
 
     # timeout is ignored
@@ -70,7 +136,7 @@ def getTests( driver, url ):
     driver.get( "%s?spec=SkipAll" % url )
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
-    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
+    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ).slice(0,10) )"
     specs = json.loads( driver.execute_script( selector ) )
 
     return specs

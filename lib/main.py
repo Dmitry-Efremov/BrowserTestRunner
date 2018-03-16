@@ -12,6 +12,8 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
           maxDuration = None, tunnelId = None, output = None, chromeOptions = None, prerunScriptUrl = None, oneByOne = False, avoidProxy = False ):
 
   driver = None
+  drivers = []
+
   framework = __import__( "lib.frameworks." + framework, fromlist = [ "lib.frameworks" ] )
 
   if ( seleniumServer is None ):
@@ -52,32 +54,56 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     log.writeln( "Connecting to selenium ..." )
 
-    driver = webdriver.Remote( seleniumServer, driver_browser )
-    driver.set_page_load_timeout( webDriverWaitTimeout )
+    # driver = webdriver.Remote( seleniumServer, driver_browser )
+    # driver.set_page_load_timeout( webDriverWaitTimeout )
 
-    log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
+    # log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
+    
+    from concurrent import futures
+    
+    with futures.ThreadPoolExecutor(max_workers=2) as executor:
+      executions = []
+      for i in range(0, 2):
+        log.writeln(str(i))
+        log.writeln("Olega@@@@@@@@@@@@@@@")
+        executions.append( executor.submit( getDriver, seleniumServer, driver_browser ) )
+      for execution in executions:
+        drivers.append( execution.result() )
+ 	 
+    runTests( drivers = drivers, url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne ) 	     
 
-    runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne )
+    # runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne )
 
   finally:
 
-    if driver:
+    # if driver:
+    for driver in drivers:
       driver.quit()
 
     selenium_process.stop_selenium_process()
 
+def getDriver( seleniumServer, driver_browser ):
+  
+  log.writeln("Olega444444444")
+  driver = webdriver.Remote( seleniumServer, driver_browser )
+  driver.set_page_load_timeout( webDriverWaitTimeout )
+  log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
+
+  return driver
+    
 @retrying.retry( stop_max_attempt_number = 2, wait_fixed = 1000, retry_on_result = lambda status: status != 200 )
 def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
 
-def runTests( driver, url, timeout, framework, output = None, oneByOne = False ):
+def runTests( drivers, url, timeout, framework, output = None, oneByOne = False ):
 
   if oneByOne:
 
     log.writeln( "Running tests one by one" )
 
-    results = framework.runTests( driver, url, timeout )
+    # results = framework.runTests( driver, url, timeout )
+    results = framework.runTestsInParallel( drivers, url, timeout )
 
     jsonResults = results[ "json" ]
     xmlResults = results[ "junit" ]

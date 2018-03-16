@@ -1,6 +1,6 @@
 FROM python:2.7-alpine
 
-RUN pip install requests retrying selenium
+RUN pip install requests retrying selenium futures
 
 COPY ./lib/ /runner/lib
 COPY ./vendors/selenium-server-standalone-2.47.1.jar /runner/vendors/selenium-server-standalone-2.47.1.jar
