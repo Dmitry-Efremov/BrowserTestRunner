@@ -76,7 +76,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
   finally:
 
     if driver:
-      driver.quit()
+      driver['driver'].quit()
       
     if drivers:
       for driver in drivers:
