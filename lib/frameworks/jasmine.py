@@ -8,8 +8,45 @@ webDriverWaitTimeout = 300
 
 from concurrent import futures
 
-def runTestsInParallel( drivers, url, timeout ):
+def runTestsInParallelReTry( drivers, url, retries_tests ):
 
+    test_results = {'results':[], 'retries_tests':[]}
+    
+    with futures.ThreadPoolExecutor( max_workers=len( drivers ) ) as executor:
+      executions = []
+      
+      log.writeln( "executions: %s" %(str(executions)) )                
+      
+      for test in retries_tests:
+          test_url = "%s?spec=%s" % ( url, urllib.quote( test ) )
+          
+          log.writeln( "RETRY %s ... " % (test_url) )
+          
+          executions.append( executor.submit( runTestByDriversPool, drivers, test_url, 60 ) )
+
+      for execution in executions:
+          exception = execution.exception()
+          if exception is not None:
+              sys.stdout.flush()
+              sys.stdout.write( "Got exception that broke everything: " + str( exception ) + "\n" )
+              sys.stdout.flush()
+          else:
+          
+              testResult = execution.result()
+              log.writeln( "testResult ... " )
+              log.writeln( str(testResult) )
+              
+              if not isPassed( testResult[ "json" ] ):
+                    
+                failed_test_name = urllib.unquote( testResult['test_url'].split("?spec=")[1] )
+                log.writeln( failed_test_name )
+                test_results['retries_tests'].append( failed_test_name )
+                
+              test_results['results'].append( testResult )
+              
+    return test_results    
+
+def runTestsInParallel( drivers, url, timeout ):
 
     driver = drivers[0]
     driver.get( url )
@@ -17,6 +54,7 @@ def runTestsInParallel( drivers, url, timeout ):
     tests = getTests( driver, url.replace(":8084", ":8085") )
 
     log.writeln( "%d tests found" % len( tests ) )
+    log.writeln( str( tests ) )
 
     newDrivers = []
     port = 8085
@@ -27,12 +65,13 @@ def runTestsInParallel( drivers, url, timeout ):
 
     testResults = []
     counter = 0
+    
+    retries_tests=[]
 
     with futures.ThreadPoolExecutor( max_workers=len( drivers ) ) as executor:
       executions = []
       for test in tests:
           test_url = "%s?spec=%s" % ( url, urllib.quote( test ) )
-          log.write( "Running test %d: %s ... " % ( counter, test_url ) )
           executions.append( executor.submit( runTestByDriversPool, drivers, test_url, 60 ) )
           counter += 1
       for execution in executions:
@@ -42,8 +81,47 @@ def runTestsInParallel( drivers, url, timeout ):
               sys.stdout.write( "Got exception that broke everything: " + str( exception ) + "\n" )
               sys.stdout.flush()
           else:
-              testResults.append( execution.result() )
-                
+              testResult = execution.result()
+              log.writeln( "testResult ... " )
+              log.writeln( str(testResult) )
+
+              if not isPassed( testResult[ "json" ] ):
+
+                failed_test_name = urllib.unquote( testResult['test_url'].split("?spec=")[1] )
+                log.writeln( failed_test_name )
+                retries_tests.append( failed_test_name )
+
+              testResults.append( testResult )
+
+    log.writeln( 'testResults' )
+    log.writeln( str(testResults) )
+    
+    log.writeln( 'retries_tests' )
+    log.writeln( str(retries_tests) )
+
+    retries = 5
+
+    while retries_tests != [] and retries:
+
+      retries -= 1
+      test_results = runTestsInParallelReTry( drivers, url, retries_tests )
+      
+      log.writeln( 'test_results' )
+      log.writeln( str(test_results) )
+      
+      for testResult in test_results['results']:
+        for i in testResults:
+          a = urllib.unquote( i['test_url'].split("?spec=")[1] )
+          b = urllib.unquote( testResult['test_url'].split("?spec=")[1] )
+          if a == b:
+            log.writeln( "testResult['test_url']" )
+            log.writeln( str(testResult['test_url']) )        
+            i['json'] = testResult['json']
+            i['junit'] = testResult['junit']
+      
+      retries_tests = test_results['retries_tests']
+    
+    log.writeln( 'testResults' )
     log.writeln( str(testResults) )
     suites = groupTestSuites( map( lambda x: x[ "json" ], testResults ) )
     xmlSuites = map( lambda x: ElementTree.tostring( x ), groupXmlSuites( map( lambda x: x[ "junit" ], testResults ) ) )
@@ -67,7 +145,9 @@ def runTestByDriversPool( driversPool, url, timeout ):
   driver = None
   try:
       driver = driversPool.pop()
-      log.writeln( url )
+      
+      
+      
       return runTest( driver["driver"], url.replace(":8084", driver["port"]) )
   finally:
       if driver:
@@ -136,7 +216,7 @@ def getTests( driver, url ):
     driver.get( "%s?spec=SkipAll" % url )
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
-    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ).slice(0,10) )"
+    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
     specs = json.loads( driver.execute_script( selector ) )
 
     return specs
@@ -144,7 +224,9 @@ def getTests( driver, url ):
 @retrying.retry( stop_max_attempt_number = 5, wait_fixed = 30000 )
 def runTest( driver, url ):
 
+    log.writeln( url )
     driver.get( url )
+    
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
     testResult = WebDriverWait( driver, webDriverWaitTimeout ).until( getResults )
@@ -157,7 +239,8 @@ def runTest( driver, url ):
     return {
 
         "json": jsonResult,
-        "junit": xmlResult
+        "junit": xmlResult,
+        "test_url": url 
     }
 
 def isPassed( testResult ):
