@@ -20,6 +20,7 @@ argsParser.add_argument( "--chrome-options", help = "Options for Chrome webdrive
 argsParser.add_argument( "--prerun-script-url", help = "Url of the script executed before run." )
 argsParser.add_argument( "--one-by-one", action = "store_true", help = "Run tests one by one." )
 argsParser.add_argument( "--avoid-proxy", action = "store_true", help = "Configures Sauce Labs to avoid using the  Selenium HTTP proxy server and have browsers communicate directly with your servers. Firefox and Google Chrome under WebDriver aren't affected by this flag." )
+argsParser.add_argument( "--tests-urls", help = "URLs where tests are served for parallel.",  nargs='+' )
 
 args = argsParser.parse_args()
 
@@ -43,5 +44,6 @@ Main(
   chromeOptions = args.chrome_options,
   prerunScriptUrl = args.prerun_script_url,
   oneByOne = args.one_by_one,
-  avoidProxy = args.avoid_proxy
+  avoidProxy = args.avoid_proxy,
+  testsUrls = args.tests_urls
 )
