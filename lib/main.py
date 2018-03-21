@@ -68,8 +68,10 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
       runTestsInParallel( drivers, timeout = maxDuration, framework = framework, output = output )
       
     else:
+    
+      driver = getDriver( seleniumServer, driver_browser, testsUrl )
 
-      runTests( driver = driver, url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne )
+      runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne )
 
   finally:
 
