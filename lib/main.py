@@ -9,7 +9,8 @@ webDriverWaitTimeout = 300
 
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
-          maxDuration = None, tunnelId = None, output = None, chromeOptions = None, prerunScriptUrl = None, oneByOne = False, avoidProxy = False, testsUrls = None ):
+          maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None, 
+          oneByOne = False, avoidProxy = False, testsUrls = None ):
 
   driver = None
   drivers = []
@@ -45,6 +46,9 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     if not ( tunnelId is None ):
       driver_browser[ "tunnelIdentifier" ] = tunnelId
+      
+    if not ( idleTimeout is None ):
+      driver_browser[ "idleTimeout" ] = idleTimeout
 
     if not ( prerunScriptUrl is None ):
       driver_browser[ "prerun" ] = { "executable": prerunScriptUrl, "background": "false" }

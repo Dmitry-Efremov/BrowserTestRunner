@@ -1,4 +1,4 @@
-#!/usr/bin/python
+n#!/usr/bin/python
 # coding: utf-8
 
 import argparse
@@ -15,6 +15,7 @@ argsParser.add_argument( "--screen-resolution", help = "Screen resolution, defau
 argsParser.add_argument( "--framework", help = "Javascript test framework used", required = True, choices = [ "jasmine", "qunit" ] )
 argsParser.add_argument( "--max-duration", help = "Maximum tests duration in seconds, default: 300.", type = int, default = 300 )
 argsParser.add_argument( "--tunnel-id", help = "SauceLabs tunnel identifier." )
+argsParser.add_argument( "--idle-timeout", help = "SauceLabs idle test timeout, default: 90.", type = int, default = 90 )
 argsParser.add_argument( "--output", help = "Filename to store JUnit xml results." )
 argsParser.add_argument( "--chrome-options", help = "Options for Chrome webdriver separated by commas, example: --chrome-options=\"--js-flags=--expose-gc,--enable-precise-memory-info\"" )
 argsParser.add_argument( "--prerun-script-url", help = "Url of the script executed before run." )
@@ -40,6 +41,7 @@ Main(
   screenResolution = args.screen_resolution,
   maxDuration = args.max_duration,
   tunnelId = args.tunnel_id,
+  idleTimeout = args.idle_timeout,
   output = args.output,
   chromeOptions = args.chrome_options,
   prerunScriptUrl = args.prerun_script_url,
