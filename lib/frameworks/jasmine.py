@@ -4,7 +4,7 @@ from itertools import groupby
 from xml.etree import ElementTree
 from lib import log
 
-webDriverWaitTimeout = 280
+webDriverWaitTimeout = 300
 
 from concurrent import futures
 
@@ -17,25 +17,25 @@ def runTestsInParallel( drivers, timeout ):
     test_results = runTestsInPoolDrivers( drivers, tests )
     testResults = test_results['results']
     retries_tests = test_results['retries_tests']
-   
+
     retries = 5
 
     while retries_tests != [] and retries:
 
       log.writeln( 'Retries tests: %s' % str(retries_tests) )
-      
+
       retries -= 1
-      
+
       retries_test_results = runTestsInPoolDrivers( drivers, retries_tests )
-      
+
       for retries_test_result in retries_test_results['results']:
         for testResult in testResults:
           if urllib.unquote( testResult['test_url'].split("?spec=")[1] ) == urllib.unquote( retries_test_result['test_url'].split("?spec=")[1] ):
             testResult['json'] = retries_test_result['json']
             testResult['junit'] = retries_test_result['junit']
-      
+
       retries_tests = retries_test_results['retries_tests']
-    
+
     suites = groupTestSuites( map( lambda x: x[ "json" ], testResults ) )
     xmlSuites = map( lambda x: ElementTree.tostring( x ), groupXmlSuites( map( lambda x: x[ "junit" ], testResults ) ) )
 
@@ -57,7 +57,7 @@ def runTestsInPoolDrivers( drivers, tests ):
 
     test_results = {'results':[], 'retries_tests':[]}
     counter = 0
-    
+
     with futures.ThreadPoolExecutor( max_workers=len( drivers ) ) as executor:
       executions = []
       for test in tests:
@@ -75,12 +75,12 @@ def runTestsInPoolDrivers( drivers, tests ):
               if not isPassed( testResult[ "json" ] ):
                 log.writeln( "failed" )
                 log.writeln( str(testResult) )
-                test_results['retries_tests'].append( test )                
-              else:              
+                test_results['retries_tests'].append( test )
+              else:
                 log.writeln( "passed" )
 
               test_results['results'].append( testResult )
-              
+
     return test_results
     
     
@@ -88,16 +88,16 @@ def runTestByDriversPool( driversPool, test, timeout ):
 
   driver = None
   try:
-  
+
       driver = driversPool.pop()
       test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )      
       log.writeln( "Running test: %s ... " % ( test_url ) )
       return runTest( driver["driver"], test_url )
-      
+
   finally:
       if driver:
           driversPool.append( driver )
-    
+
 def runTests( driver, url, timeout ):
 
     # timeout is ignored
@@ -158,11 +158,9 @@ def runTests( driver, url, timeout ):
 @retrying.retry( stop_max_attempt_number = 5, wait_fixed = 5000 )
 def getTests( driver, url ):
 
-    log.write( "driver.get1" )
     driver.get( "%s?spec=SkipAll" % url )
-    log.write( "driver.get2" )
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
-    
+
     selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
     specs = json.loads( driver.execute_script( selector ) )
 
@@ -172,7 +170,7 @@ def getTests( driver, url ):
 def runTest( driver, url ):
 
     driver.get( url )
-    
+
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
     testResult = WebDriverWait( driver, webDriverWaitTimeout ).until( getResults )
