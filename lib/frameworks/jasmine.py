@@ -4,7 +4,7 @@ from itertools import groupby
 from xml.etree import ElementTree
 from lib import log
 
-webDriverWaitTimeout = 300
+webDriverWaitTimeout = 280
 
 from concurrent import futures
 
@@ -56,6 +56,7 @@ def runTestsInParallel( drivers, timeout ):
 def runTestsInPoolDrivers( drivers, tests ):
 
     test_results = {'results':[], 'retries_tests':[]}
+    counter = 0
     
     with futures.ThreadPoolExecutor( max_workers=len( drivers ) ) as executor:
       executions = []
@@ -63,13 +64,13 @@ def runTestsInPoolDrivers( drivers, tests ):
           executions.append( executor.submit( runTestByDriversPool, drivers, test, 60 ) )
       for execution in executions:
           exception = execution.exception()
-          
+          counter += 1
           if exception is not None:
               log.writeln( "Got exception that broke everything: " + str( exception ) + "\n" )
           else:
               testResult = execution.result()
               test = urllib.unquote(testResult['test_url'].split("?spec=")[1])
-              log.write( "%s ... " % ( test ) )
+              log.write( "test %d: %s ... " % ( counter, test ) )
 
               if not isPassed( testResult[ "json" ] ):
                 log.writeln( "failed" )
@@ -157,10 +158,12 @@ def runTests( driver, url, timeout ):
 @retrying.retry( stop_max_attempt_number = 5, wait_fixed = 5000 )
 def getTests( driver, url ):
 
+    log.write( "driver.get1" )
     driver.get( "%s?spec=SkipAll" % url )
+    log.write( "driver.get2" )
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
-
-    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ).slice(0,5) )"
+    
+    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
     specs = json.loads( driver.execute_script( selector ) )
 
     return specs
