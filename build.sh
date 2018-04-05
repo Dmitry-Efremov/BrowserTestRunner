@@ -2,7 +2,7 @@
 # Build docker container
 #
 
-DOCKER_REPO="questsoftware"
+DOCKER_REPO="jointtm"
 IMAGE="browser-test-runner"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
