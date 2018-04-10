@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import json, retrying, urllib, sys
 from selenium.webdriver.support.ui import WebDriverWait
 from itertools import groupby
@@ -8,95 +10,72 @@ webDriverWaitTimeout = 300
 
 from concurrent import futures
 
-def runTestsInParallel( drivers, timeout ):
-
-    log.write( "Calculating number of tests ... " )
+def runTestsInParallel(drivers, timeout):
+    log.write("Calculating number of tests ... ")
     tests = getTests( drivers[0]["driver"], drivers[0]["testsUrl"] )
-    log.writeln( "%d tests found" % len( tests ) )
+    log.writeln("%d tests found" % len( tests ))
 
-    test_results = runTestsInPoolDrivers( drivers, tests )
-    testResults = test_results['results']
-    retries_tests = test_results['retries_tests']
+    testResults = runTestsInPoolDrivers(drivers, tests)
 
-    retries = 5
+    suites = groupTestSuites( map(lambda x: x["json"], testResults) )
+    xmlSuites = map(lambda x: ElementTree.tostring(x), groupXmlSuites( map(lambda x: x[ "junit" ], testResults) ))
 
-    while retries_tests != [] and retries:
-
-      log.writeln( 'Retries tests: %s' % str(retries_tests) )
-
-      retries -= 1
-
-      retries_test_results = runTestsInPoolDrivers( drivers, retries_tests )
-
-      for retries_test_result in retries_test_results['results']:
-        for testResult in testResults:
-          if urllib.unquote( testResult['test_url'].split("?spec=")[1] ) == urllib.unquote( retries_test_result['test_url'].split("?spec=")[1] ):
-            testResult['json'] = retries_test_result['json']
-            testResult['junit'] = retries_test_result['junit']
-
-      retries_tests = retries_test_results['retries_tests']
-
-    suites = groupTestSuites( map( lambda x: x[ "json" ], testResults ) )
-    xmlSuites = map( lambda x: ElementTree.tostring( x ), groupXmlSuites( map( lambda x: x[ "junit" ], testResults ) ) )
-
-    testResults = {
-
+    return {
         "json": {
-
             "suites": suites,
-            "durationSec": sum( map( lambda x: x[ "durationSec" ], suites ) ),
-            "passed": all( map( lambda x: x[ "passed" ], suites ) )
+            "durationSec": sum( map(lambda x: x["durationSec"], suites) ),
+            "passed": all( map(lambda x: x["passed"], suites) )
         },
-
-        "junit": '<?xml version="1.0" encoding="UTF-8" ?>\n<testsuites>\n%s\n</testsuites>\n' % "\n".join( xmlSuites )
+        "junit": '<?xml version="1.0" encoding="UTF-8" ?>\n<testsuites>\n%s\n</testsuites>\n' % "\n".join(xmlSuites)
     }
 
-    return testResults
-
-def runTestsInPoolDrivers( drivers, tests ):
-
-    test_results = {'results':[], 'retries_tests':[]}
+def runTestsInPoolDrivers(drivers, tests):
+    test_results = []
     counter = 0
 
-    with futures.ThreadPoolExecutor( max_workers=len( drivers ) ) as executor:
+    with futures.ThreadPoolExecutor(max_workers=len(drivers)) as executor:
       executions = []
       for test in tests:
-          executions.append( executor.submit( runTestByDriversPool, drivers, test, 60 ) )
+          counter += 1
+          executions.append( executor.submit(runTestByDriversPool, drivers, test, counter) )
       for execution in executions:
           exception = execution.exception()
-          counter += 1
           if exception is not None:
               log.writeln( "Got exception that broke everything: " + str( exception ) + "\n" )
           else:
               testResult = execution.result()
-              test = urllib.unquote(testResult['test_url'].split("?spec=")[1])
-              log.write( "test %d: %s ... " % ( counter, test ) )
-
-              if not isPassed( testResult[ "json" ] ):
-                log.writeln( "failed" )
-                log.writeln( str(testResult) )
-                test_results['retries_tests'].append( test )
-              else:
-                log.writeln( "passed" )
-
-              test_results['results'].append( testResult )
+              test_results.append( testResult )
 
     return test_results
     
-    
-def runTestByDriversPool( driversPool, test, timeout ):
+def runTestByDriversPool(driversPool, test, counter):
+    driver = None
+    try:
+        driver = driversPool.pop()
+        test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )      
+        log.writeln( "Running test %d: %s ..." % ( counter, test_url ) )
+        retries = 5
+        passed = False      
+        testResult = None
 
-  driver = None
-  try:
-
-      driver = driversPool.pop()
-      test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )      
-      log.writeln( "Running test: %s ... " % ( test_url ) )
-      return runTest( driver["driver"], test_url )
-
-  finally:
-      if driver:
-          driversPool.append( driver )
+        while not passed and retries:
+          retries -= 1
+          try:
+            testResult = runTest(driver["driver"], test_url)
+            if isPassed(testResult["json"]):
+                log.writeln( "test %d: %s ... passed" % (counter, test_url))
+                passed = True
+            else:
+              log.writeln("test %d: %s ... failed" % (counter, test_url))
+              log.writeln(str(testResult))
+              log.writeln("RETRY test %d: %s ..." % (counter, test_url))
+          except Exception:
+            log.writeln( "fatal error" )
+            raise
+        return testResult
+    finally:
+        if driver:
+            driversPool.append( driver )
 
 def runTests( driver, url, timeout ):
 
@@ -161,7 +140,7 @@ def getTests( driver, url ):
     driver.get( "%s?spec=SkipAll" % url )
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
-    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
+    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ).slice(0,5) )"
     specs = json.loads( driver.execute_script( selector ) )
 
     return specs

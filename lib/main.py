@@ -4,6 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
 from lib import selenium_process, log
+from urlparse import urlparse
 
 webDriverWaitTimeout = 300
 
@@ -64,8 +65,8 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
       with futures.ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
         executions = []
-        for testsUrl in testsUrls:
-          executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl ) )
+        for testsUrl in testsUrls:          
+          executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl, browser ) )
         for execution in executions:
           drivers.append( execution.result() )
 
@@ -73,7 +74,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     else:
 
-      driver = getDriver( seleniumServer, driver_browser, testsUrl )
+      driver = getDriver( seleniumServer, driver_browser, testsUrl, browser )
 
       runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne )
 
@@ -88,8 +89,9 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     selenium_process.stop_selenium_process()
 
-def getDriver( seleniumServer, driver_browser, testsUrl ):
+def getDriver( seleniumServer, driver_browser, testsUrl, browser ):
 
+  driver_browser["name"] = "e2e tests %s %d" % (browser,urlparse(testsUrl).port)
   driver = webdriver.Remote( seleniumServer, driver_browser )
   driver.set_page_load_timeout( webDriverWaitTimeout )
   log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
