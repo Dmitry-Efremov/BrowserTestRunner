@@ -1,4 +1,6 @@
-import json, retrying, urllib
+# coding: utf-8
+
+import json, retrying, urllib, sys
 from selenium.webdriver.support.ui import WebDriverWait
 from itertools import groupby
 from xml.etree import ElementTree
@@ -6,6 +8,67 @@ from lib import log
 
 webDriverWaitTimeout = 300
 
+from concurrent import futures
+
+def runTestsInParallel(drivers, timeout):
+    log.write("Calculating number of tests ... ")
+    tests = getTests( drivers[0]["driver"], drivers[0]["testsUrl"] )
+    log.writeln("%d tests found" % len( tests ))
+
+    testResults = runTestsInPoolDrivers(drivers, tests)
+
+    suites = groupTestSuites( map(lambda x: x["json"], testResults) )
+    xmlSuites = map(lambda x: ElementTree.tostring(x), groupXmlSuites( map(lambda x: x[ "junit" ], testResults) ))
+
+    return {
+        "json": {
+            "suites": suites,
+            "durationSec": sum( map(lambda x: x["durationSec"], suites) ),
+            "passed": all( map(lambda x: x["passed"], suites) )
+        },
+        "junit": '<?xml version="1.0" encoding="UTF-8" ?>\n<testsuites>\n%s\n</testsuites>\n' % "\n".join(xmlSuites)
+    }
+
+def runTestsInPoolDrivers(drivers, tests):
+    test_results = []
+    counter = 0
+
+    with futures.ThreadPoolExecutor(max_workers=len(drivers)) as executor:
+        executions = []
+        for test in tests:
+            counter += 1
+            executions.append( executor.submit(runTestByDriversPool, drivers, test, counter) )
+        for execution in executions:
+            exception = execution.exception()
+            if exception is not None:
+                log.writeln( "fatal error" )
+                raise exception
+            else:
+                testResult = execution.result()
+                test_results.append( testResult )
+
+    return test_results
+
+def runTestByDriversPool(driversPool, test, counter):
+    driver = driversPool.pop()
+    test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )
+    log.writeln( "Running test %d: %s" % ( counter, test ) )
+    retries = 5
+    passed = False
+    testResult = None
+    while not passed and retries:
+        retries -= 1
+        testResult = runTest(driver["driver"], test_url)
+        if isPassed(testResult["json"]):
+            log.writeln( "test %d: %s ... passed" % (counter, test))
+            passed = True
+        else:
+            log.writeln("test %d: %s ... failed" % (counter, test))
+            log.writeln(str(testResult))
+            log.writeln("RETRY test %d: %s" % (counter, test))
+
+    driversPool.append( driver )
+    return testResult
 
 def runTests( driver, url, timeout ):
 
@@ -79,6 +142,7 @@ def getTests( driver, url ):
 def runTest( driver, url ):
 
     driver.get( url )
+
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
     testResult = WebDriverWait( driver, webDriverWaitTimeout ).until( getResults )
@@ -91,7 +155,8 @@ def runTest( driver, url ):
     return {
 
         "json": jsonResult,
-        "junit": xmlResult
+        "junit": xmlResult,
+        "test_url": url
     }
 
 def isPassed( testResult ):

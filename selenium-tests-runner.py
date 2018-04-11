@@ -15,11 +15,13 @@ argsParser.add_argument( "--screen-resolution", help = "Screen resolution, defau
 argsParser.add_argument( "--framework", help = "Javascript test framework used", required = True, choices = [ "jasmine", "qunit" ] )
 argsParser.add_argument( "--max-duration", help = "Maximum tests duration in seconds, default: 300.", type = int, default = 300 )
 argsParser.add_argument( "--tunnel-id", help = "SauceLabs tunnel identifier." )
+argsParser.add_argument( "--idle-timeout", help = "SauceLabs idle test timeout, default: 90.", type = int, default = 90 )
 argsParser.add_argument( "--output", help = "Filename to store JUnit xml results." )
 argsParser.add_argument( "--chrome-options", help = "Options for Chrome webdriver separated by commas, example: --chrome-options=\"--js-flags=--expose-gc,--enable-precise-memory-info\"" )
 argsParser.add_argument( "--prerun-script-url", help = "Url of the script executed before run." )
 argsParser.add_argument( "--one-by-one", action = "store_true", help = "Run tests one by one." )
 argsParser.add_argument( "--avoid-proxy", action = "store_true", help = "Configures Sauce Labs to avoid using the  Selenium HTTP proxy server and have browsers communicate directly with your servers. Firefox and Google Chrome under WebDriver aren't affected by this flag." )
+argsParser.add_argument( "--tests-urls", help = "URLs where tests are served for parallel runs.",  nargs='+' )
 
 args = argsParser.parse_args()
 
@@ -39,9 +41,11 @@ Main(
   screenResolution = args.screen_resolution,
   maxDuration = args.max_duration,
   tunnelId = args.tunnel_id,
+  idleTimeout = args.idle_timeout,
   output = args.output,
   chromeOptions = args.chrome_options,
   prerunScriptUrl = args.prerun_script_url,
   oneByOne = args.one_by_one,
-  avoidProxy = args.avoid_proxy
+  avoidProxy = args.avoid_proxy,
+  testsUrls = args.tests_urls
 )
