@@ -47,7 +47,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     if not ( tunnelId is None ):
       driver_browser[ "tunnelIdentifier" ] = tunnelId
-      
+
     if not ( idleTimeout is None ):
       driver_browser[ "idleTimeout" ] = idleTimeout
 
@@ -65,12 +65,12 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
       with futures.ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
         executions = []
-        for testsUrl in testsUrls:          
+        for testsUrl in testsUrls:
           executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl, browser ) )
         for execution in executions:
           drivers.append( execution.result() )
 
-      runTestsInParallel( drivers, timeout = maxDuration, framework = framework, output = output )
+      runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
 
     else:
 
