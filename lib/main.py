@@ -4,7 +4,6 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
 from lib import selenium_process, log
-from urlparse import urlparse
 
 webDriverWaitTimeout = 300
 
