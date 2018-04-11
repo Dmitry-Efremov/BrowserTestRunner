@@ -133,7 +133,7 @@ def getTests( driver, url ):
     driver.get( "%s?spec=SkipAll" % url )
     WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
 
-    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ).slice(0,5) )"
+    selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
     specs = json.loads( driver.execute_script( selector ) )
 
     return specs
