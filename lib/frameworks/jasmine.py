@@ -34,39 +34,39 @@ def runTestsInPoolDrivers(drivers, tests):
     counter = 0
 
     with futures.ThreadPoolExecutor(max_workers=len(drivers)) as executor:
-    executions = []
-    for test in tests:
-        counter += 1
-        executions.append( executor.submit(runTestByDriversPool, drivers, test, counter) )
-    for execution in executions:
-        exception = execution.exception()
-        if exception is not None:
-            log.writeln( "fatal error" )
-            raise exception
-        else:
-            testResult = execution.result()
-            test_results.append( testResult )
+        executions = []
+        for test in tests:
+            counter += 1
+            executions.append( executor.submit(runTestByDriversPool, drivers, test, counter) )
+        for execution in executions:
+            exception = execution.exception()
+            if exception is not None:
+                log.writeln( "fatal error" )
+                raise exception
+            else:
+                testResult = execution.result()
+                test_results.append( testResult )
 
     return test_results
 
 def runTestByDriversPool(driversPool, test, counter):
     driver = driversPool.pop()
     test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )
-    log.writeln( "Running test %d: %s ..." % ( counter, test_url ) )
+    log.writeln( "Running test %d: %s" % ( counter, test ) )
     retries = 5
     passed = False
     testResult = None
-
     while not passed and retries:
         retries -= 1
         testResult = runTest(driver["driver"], test_url)
         if isPassed(testResult["json"]):
-            log.writeln( "test %d: %s ... passed" % (counter, test_url))
+            log.writeln( "test %d: %s ... passed" % (counter, test))
             passed = True
         else:
-            log.writeln("test %d: %s ... failed" % (counter, test_url))
+            log.writeln("test %d: %s ... failed" % (counter, test))
             log.writeln(str(testResult))
-            log.writeln("RETRY test %d: %s ..." % (counter, test_url))
+            log.writeln("RETRY test %d: %s" % (counter, test))
+
     driversPool.append( driver )
     return testResult
 
