@@ -1,4 +1,5 @@
 import os, sys, requests, retrying, json
+from datetime import datetime
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -10,7 +11,7 @@ webDriverWaitTimeout = 300
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
           maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
-          oneByOne = False, avoidProxy = False, testsUrls = None ):
+          oneByOne = False, avoidProxy = False, testsUrls = None, enableTestsLogs = None ):
 
   driver = None
   drivers = []
@@ -56,6 +57,9 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
     if avoidProxy:
       driver_browser[ "avoidProxy" ] = True
 
+    if enableTestLogs:
+      driver_browser['loggingPrefs'] = {'performance': 'ALL', 'browser':'ALL', 'driver':'ALL'}
+
     log.writeln( "Connecting to selenium ..." )
 
     if testsUrls:
@@ -75,7 +79,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
       driver = getDriver( seleniumServer, driver_browser, testsUrl )
 
-      runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne )
+      runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne, enableTestLogs = enableTestLogs )
 
   finally:
 
@@ -95,6 +99,12 @@ def getDriver( seleniumServer, driver_browser, testsUrl ):
   log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
 
   return { "driver": driver, "testsUrl": testsUrl }
+
+def getTestLog( driver, log_type ):
+  log.writeln(log_type)
+  for entry in driver.get_log(log_type):
+    entry[ u'timestamp' ] = datetime.fromtimestamp(int(entry[ u'timestamp' ])/1000).strftime('%H:%M:%S')
+    log.writeln(str(entry))
 
 @retrying.retry( stop_max_attempt_number = 2, wait_fixed = 1000, retry_on_result = lambda status: status != 200 )
 def waitSeleniumPort( url ):
@@ -116,7 +126,7 @@ def runTestsInParallel( drivers, timeout, framework, output = None ):
     log.writeln( "JUnit xml saved to: " + output )
 
 
-def runTests( driver, url, timeout, framework, output = None, oneByOne = False ):
+def runTests( driver, url, timeout, framework, output = None, oneByOne = False, enableTestLogs = False ):
 
   if oneByOne:
 
@@ -133,6 +143,10 @@ def runTests( driver, url, timeout, framework, output = None, oneByOne = False )
 
     driver.get( url )
     WebDriverWait( driver, timeout ).until( framework.isFinished )
+
+    if enableTestLogs:
+      for cur_type in ['browser', 'performance', 'driver']:
+        getTestLog(driver, cur_type)
 
     log.writeln( "Retrieving results ..." )
 
