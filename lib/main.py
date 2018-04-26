@@ -11,7 +11,7 @@ webDriverWaitTimeout = 300
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
           maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
-          oneByOne = False, avoidProxy = False, testsUrls = None, enableTestsLogs = False ):
+          oneByOne = False, avoidProxy = False, testsUrls = None, enableTestLogs = False ):
 
   driver = None
   drivers = []
