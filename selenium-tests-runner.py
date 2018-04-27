@@ -22,6 +22,7 @@ argsParser.add_argument( "--prerun-script-url", help = "Url of the script execut
 argsParser.add_argument( "--one-by-one", action = "store_true", help = "Run tests one by one." )
 argsParser.add_argument( "--avoid-proxy", action = "store_true", help = "Configures Sauce Labs to avoid using the  Selenium HTTP proxy server and have browsers communicate directly with your servers. Firefox and Google Chrome under WebDriver aren't affected by this flag." )
 argsParser.add_argument( "--tests-urls", help = "URLs where tests are served for parallel runs.",  nargs='+' )
+argsParser.add_argument( "--enable-test-logs", action = "store_true", help = "Print to console browser, performance and driver logs after running tests for debug purposes")
 
 args = argsParser.parse_args()
 
@@ -47,5 +48,6 @@ Main(
   prerunScriptUrl = args.prerun_script_url,
   oneByOne = args.one_by_one,
   avoidProxy = args.avoid_proxy,
-  testsUrls = args.tests_urls
+  testsUrls = args.tests_urls,
+  enableTestLogs = args.enable_test_logs
 )
