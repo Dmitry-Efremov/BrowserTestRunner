@@ -11,7 +11,7 @@ webDriverWaitTimeout = 300
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
           maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
-          oneByOne = False, avoidProxy = False, testsUrls = None, enableTestLogs = False ):
+          oneByOne = False, avoidProxy = False, testsUrls = None, browsersCount = None, enableTestLogs = False ):
 
   driver = None
   drivers = []
@@ -62,24 +62,38 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     log.writeln( "Connecting to selenium ..." )
 
-    if testsUrls:
-
+    if browsersCount:
       from concurrent import futures
 
-      with futures.ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
+      with futures.ThreadPoolExecutor( max_workers=int(browsersCount) ) as executor:
         executions = []
-        for testsUrl in testsUrls:
-          executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl ) )
+        for idx in range(0, int(browsersCount)):
+          print(seleniumServer.format(idx))
+          executions.append( executor.submit( getDriver, seleniumServer.format(idx), driver_browser, testsUrl ) )
         for execution in executions:
           drivers.append( execution.result() )
 
       runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
 
     else:
+      if testsUrls:
 
-      driver = getDriver( seleniumServer, driver_browser, testsUrl )
+        from concurrent import futures
 
-      runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne, enableTestLogs = enableTestLogs )
+        with futures.ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
+          executions = []
+          for testsUrl in testsUrls:
+            executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl ) )
+          for execution in executions:
+            drivers.append( execution.result() )
+
+        runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
+
+      else:
+
+        driver = getDriver( seleniumServer, driver_browser, testsUrl )
+
+        runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne, enableTestLogs = enableTestLogs )
 
   finally:
 
