@@ -1,6 +1,6 @@
 FROM python:2.7-alpine
 
-RUN pip install requests retrying selenium futures
+RUN pip install requests retrying selenium futures azure-storage-blob
 RUN apk add --no-cache vim
 
 COPY ./lib/ /runner/lib
