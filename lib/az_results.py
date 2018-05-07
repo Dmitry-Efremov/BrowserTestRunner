@@ -2,7 +2,10 @@ import os, sys, traceback
 import log
 from azure.storage.blob import BlockBlobService
 
-def getService(  ):
+def main():
+
+  file_path = "/results/custom-tests-results.xml"
+  repository = "vlavrenc-tests-results"
 
   azureAccount = os.getenv( "AZURE_STORAGE_ACCOUNT" )
   azureKey = os.getenv( "AZURE_STORAGE_ACCOUNT_KEY" )
@@ -10,15 +13,11 @@ def getService(  ):
   if azureAccount and azureKey:
 
     blobService = BlockBlobService( account_name = azureAccount, account_key = azureKey )
-
+    blobService.create_container(repository)
+    blobService.create_blob_from_path(repository, "tests-results.xml", file_path)
   else:
 
     log.writeln( "WARNING: Azure Storage credentials not found." )
-
-
-def main():
-
-  service = getService()
 
 try:
 
