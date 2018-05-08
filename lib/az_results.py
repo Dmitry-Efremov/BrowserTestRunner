@@ -2,28 +2,24 @@ import os, sys, traceback
 import log
 from azure.storage.blob import BlockBlobService
 
-def main():
+def publish( results, repository ):
 
-  file_path = "/results/custom-tests-results.xml"
-  repository = "vlavrenc-tests-results"
+  try:
 
-  azureAccount = os.getenv( "AZURE_STORAGE_ACCOUNT" )
-  azureKey = os.getenv( "AZURE_STORAGE_ACCOUNT_KEY" )
+    log.writeln("Publish tests results from '%s' to '%s' repository" % results, repository)
+    azureAccount = os.getenv( "AZURE_STORAGE_ACCOUNT" )
+    azureKey = os.getenv( "AZURE_STORAGE_ACCOUNT_KEY" )
 
-  if azureAccount and azureKey:
+    if azureAccount and azureKey:
 
-    blobService = BlockBlobService( account_name = azureAccount, account_key = azureKey )
-    blobService.create_container(repository)
-    blobService.create_blob_from_path(repository, "tests-results.xml", file_path)
-  else:
+      blobService = BlockBlobService( account_name = azureAccount, account_key = azureKey )
+      blobService.create_container(repository)
+      blobService.create_blob_from_path(repository, "tests-results.xml", results)
+    else:
 
-    log.writeln( "WARNING: Azure Storage credentials not found." )
+      log.writeln( "WARNING: Azure Storage credentials not found." )
 
-try:
+  except Exception as err:
 
-  main()
-
-except Exception as err:
-
-  log.writeln( "ERROR: %s" % err )
-  traceback.print_exc()
+    log.writeln( "ERROR: %s" % err )
+    traceback.print_exc()

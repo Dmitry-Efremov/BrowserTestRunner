@@ -76,7 +76,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
       
       if not ( azureRepository is None):
         from az_results import publish
-	publish( azureRepository )
+	publish( output, azureRepository )
 
     else:
       if testsUrls:
