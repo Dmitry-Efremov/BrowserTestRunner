@@ -6,7 +6,7 @@ def publish( results, repository ):
 
   try:
 
-    log.writeln("Publish tests results from '%s' to '%s' repository" % results, repository)
+    log.writeln("Publish tests results from '%s' to '%s' repository" % (results, repository))
     azureAccount = os.getenv( "AZURE_STORAGE_ACCOUNT" )
     azureKey = os.getenv( "AZURE_STORAGE_ACCOUNT_KEY" )
 
