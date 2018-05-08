@@ -107,6 +107,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
 def getDriver( seleniumServer, driver_browser, testsUrl ):
 
+  log.writeln( "Trying to connect to server: %s" % ( seleniumServer ) )
   driver = webdriver.Remote( seleniumServer, driver_browser )
   driver.set_page_load_timeout( webDriverWaitTimeout )
   log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
