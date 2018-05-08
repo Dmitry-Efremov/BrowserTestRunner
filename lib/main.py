@@ -11,7 +11,7 @@ webDriverWaitTimeout = 300
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
           maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
-          oneByOne = False, avoidProxy = False, testsUrls = None, browsersCount = None, enableTestLogs = False ):
+          oneByOne = False, avoidProxy = False, testsUrls = None, browsersCount = None, azureRepository = None, enableTestLogs = False ):
 
   driver = None
   drivers = []
@@ -73,6 +73,10 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
           drivers.append( execution.result() )
 
       runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
+      
+      if not ( azureRepository is None):
+        from az_results import publish
+	publish( azureRepository )
 
     else:
       if testsUrls:
@@ -106,8 +110,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
     selenium_process.stop_selenium_process()
 
 def getDriver( seleniumServer, driver_browser, testsUrl ):
-
-  log.writeln( "Trying to connect to server: %s" % ( seleniumServer ) )
+  waitSeleniumPort( seleniumServer )
   driver = webdriver.Remote( seleniumServer, driver_browser )
   driver.set_page_load_timeout( webDriverWaitTimeout )
   log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
@@ -120,7 +123,7 @@ def getTestLog( driver, log_type ):
     entry[ u'timestamp' ] = datetime.fromtimestamp(int(entry[ u'timestamp' ])/1000).strftime('%H:%M:%S')
     log.writeln(str(entry))
 
-@retrying.retry( stop_max_attempt_number = 2, wait_fixed = 1000, retry_on_result = lambda status: status != 200 )
+@retrying.retry( stop_max_attempt_number = 60, wait_fixed = 3000, retry_on_result = lambda status: status != 200 )
 def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
