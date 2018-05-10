@@ -123,7 +123,7 @@ def getTestLog( driver, log_type ):
     entry[ u'timestamp' ] = datetime.fromtimestamp(int(entry[ u'timestamp' ])/1000).strftime('%H:%M:%S')
     log.writeln(str(entry))
 
-@retrying.retry( stop_max_attempt_number = 60, wait_fixed = 3000, retry_on_result = lambda status: status != 200 )
+@retrying.retry( stop_max_attempt_number = 120, wait_fixed = 3000, retry_on_result = lambda status: status != 200 )
 def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
