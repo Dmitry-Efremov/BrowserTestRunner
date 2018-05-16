@@ -89,7 +89,7 @@ def runTests( driver, url, timeout ):
         testResult = None
         counter += 1
 
-        log.write( "Running test %d in session %s: %s ... " % ( counter, driver['driver'].session_id, test ) )
+        log.write( "Running test %d: %s ... " % ( counter, test ) )
 
         while not passed and retries:
 
