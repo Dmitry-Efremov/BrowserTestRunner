@@ -68,7 +68,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
       with futures.ThreadPoolExecutor( max_workers=int(browsersCount) ) as executor:
         executions = []
         for idx in range(0, int(browsersCount)):
-          executions.append( executor.submit( getDriver, seleniumServer.format(idx), driver_browser, testsUrl ) )
+          executions.append( executor.submit( getDriver, seleniumServer.format(idx), driver_browser, testsUrl, True ) )
         for execution in executions:
           drivers.append( execution.result() )
 
@@ -109,8 +109,9 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     selenium_process.stop_selenium_process()
 
-def getDriver( seleniumServer, driver_browser, testsUrl ):
-  waitSeleniumPort( seleniumServer )
+def getDriver( seleniumServer, driver_browser, testsUrl, waitForSelenium = False ):
+  if waitForSelenium:
+    waitSeleniumPort( seleniumServer )
   driver = webdriver.Remote( seleniumServer, driver_browser )
   driver.set_page_load_timeout( webDriverWaitTimeout )
   log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
