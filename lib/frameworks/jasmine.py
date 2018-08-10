@@ -52,7 +52,7 @@ def runTestsInPoolDrivers(drivers, tests):
 def runTestByDriversPool(driversPool, test, counter):
     driver = driversPool.pop()
     test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )
-    log.writeln( "Running test %d: %s" % ( counter, test ) )
+    log.writeln( "Running test %d in session %s: %s" % ( counter, driver['driver'].session_id, test ) )
     retries = 5
     passed = False
     testResult = None

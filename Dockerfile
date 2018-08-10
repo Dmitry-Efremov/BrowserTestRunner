@@ -1,6 +1,7 @@
 FROM python:2.7-alpine
 
-RUN pip install requests retrying selenium futures
+RUN apk add --no-cache vim build-base libffi-dev openssl-dev
+RUN pip install requests retrying selenium futures azure-storage-blob
 
 COPY ./lib/ /runner/lib
 COPY ./vendors/selenium-server-standalone-2.47.1.jar /runner/vendors/selenium-server-standalone-2.47.1.jar

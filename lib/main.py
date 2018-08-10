@@ -11,7 +11,7 @@ webDriverWaitTimeout = 300
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
           maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
-          oneByOne = False, avoidProxy = False, testsUrls = None, enableTestLogs = False ):
+          oneByOne = False, avoidProxy = False, testsUrls = None, browsersCount = None, azureRepository = None, enableTestLogs = False ):
 
   driver = None
   drivers = []
@@ -62,24 +62,41 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     log.writeln( "Connecting to selenium ..." )
 
-    if testsUrls:
-
+    if browsersCount:
       from concurrent import futures
 
-      with futures.ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
+      with futures.ThreadPoolExecutor( max_workers=int(browsersCount) ) as executor:
         executions = []
-        for testsUrl in testsUrls:
-          executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl ) )
+        for idx in range(0, int(browsersCount)):
+          executions.append( executor.submit( getDriver, seleniumServer.format(idx), driver_browser, testsUrl, True ) )
         for execution in executions:
           drivers.append( execution.result() )
 
       runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
+      
+      if not ( azureRepository is None):
+        from az_results import publish
+	publish( output, azureRepository )
 
     else:
+      if testsUrls:
 
-      driver = getDriver( seleniumServer, driver_browser, testsUrl )
+        from concurrent import futures
 
-      runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne, enableTestLogs = enableTestLogs )
+        with futures.ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
+          executions = []
+          for testsUrl in testsUrls:
+            executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl ) )
+          for execution in executions:
+            drivers.append( execution.result() )
+
+        runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
+
+      else:
+
+        driver = getDriver( seleniumServer, driver_browser, testsUrl )
+
+        runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne, enableTestLogs = enableTestLogs )
 
   finally:
 
@@ -92,11 +109,12 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     selenium_process.stop_selenium_process()
 
-def getDriver( seleniumServer, driver_browser, testsUrl ):
-
+def getDriver( seleniumServer, driver_browser, testsUrl, waitForSelenium = False ):
+  if waitForSelenium:
+    waitSeleniumPort( seleniumServer )
   driver = webdriver.Remote( seleniumServer, driver_browser )
   driver.set_page_load_timeout( webDriverWaitTimeout )
-  log.writeln( "Selenium session id: %s" % ( driver.session_id ) )
+  log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
 
   return { "driver": driver, "testsUrl": testsUrl }
 
@@ -106,7 +124,7 @@ def getTestLog( driver, log_type ):
     entry[ u'timestamp' ] = datetime.fromtimestamp(int(entry[ u'timestamp' ])/1000).strftime('%H:%M:%S')
     log.writeln(str(entry))
 
-@retrying.retry( stop_max_attempt_number = 2, wait_fixed = 1000, retry_on_result = lambda status: status != 200 )
+@retrying.retry( stop_max_attempt_number = 120, wait_fixed = 3000, retry_on_result = lambda status: status != 200 )
 def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
