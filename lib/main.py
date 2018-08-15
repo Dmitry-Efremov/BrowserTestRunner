@@ -63,30 +63,39 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
     log.writeln( "Connecting to selenium ..." )
 
     if browsersCount:
+
       from concurrent import futures
 
-      with futures.ThreadPoolExecutor( max_workers=int(browsersCount) ) as executor:
+      with futures.ThreadPoolExecutor( max_workers = int( browsersCount ) ) as executor:
+
         executions = []
-        for idx in range(0, int(browsersCount)):
+
+        for idx in range( 0, int( browsersCount ) ):
           executions.append( executor.submit( getDriver, seleniumServer.format(idx), driver_browser, testsUrl, True ) )
+
         for execution in executions:
           drivers.append( execution.result() )
 
       runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
-      
-      if not ( azureRepository is None):
-        from az_results import publish
-	publish( output, azureRepository )
+
+      if not ( azureRepository is None ):
+
+        from azure_storage import publish
+        publish( output, azureRepository )
 
     else:
+
       if testsUrls:
 
         from concurrent import futures
 
         with futures.ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
+
           executions = []
+
           for testsUrl in testsUrls:
             executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl ) )
+
           for execution in executions:
             drivers.append( execution.result() )
 
@@ -110,17 +119,23 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
     selenium_process.stop_selenium_process()
 
 def getDriver( seleniumServer, driver_browser, testsUrl, waitForSelenium = False ):
+
   if waitForSelenium:
     waitSeleniumPort( seleniumServer )
+
   driver = webdriver.Remote( seleniumServer, driver_browser )
   driver.set_page_load_timeout( webDriverWaitTimeout )
+
   log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
 
   return { "driver": driver, "testsUrl": testsUrl }
 
 def getTestLog( driver, log_type ):
-  log.writeln(log_type)
+
+  log.writeln( log_type )
+
   for entry in driver.get_log(log_type):
+
     entry[ u'timestamp' ] = datetime.fromtimestamp(int(entry[ u'timestamp' ])/1000).strftime('%H:%M:%S')
     log.writeln(str(entry))
 
