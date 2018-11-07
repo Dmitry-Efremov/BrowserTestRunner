@@ -29,6 +29,8 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     driver_browser = getattr( webdriver.DesiredCapabilities, browser.upper() )
 
+    driver_browser[ "sauce:options" ] = { "seleniumVersion": "3.11.0" }
+
     if chromeOptions:
       opts = chromeOptions.split( "," )
       driver_browser[ "chromeOptions" ] = { "args": opts }
