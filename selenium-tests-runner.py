@@ -25,6 +25,7 @@ argsParser.add_argument( "--tests-urls", help = "URLs where tests are served for
 argsParser.add_argument( "--enable-test-logs", action = "store_true", help = "Print to console browser, performance and driver logs after running tests for debug purposes" )
 argsParser.add_argument( "--azure-repository", help = "Name of the repository in Azure to store tests results" )
 argsParser.add_argument( "--browsers-count", help = "Number of selenium servers to run tests" )
+argsParser.add_argument( "--w3c-beta", action = "store_true", help = "Use new w3c format to generate capabilities" )
 
 args = argsParser.parse_args()
 
@@ -53,5 +54,6 @@ Main(
   testsUrls = args.tests_urls,
   enableTestLogs = args.enable_test_logs,
   azureRepository = args.azure_repository,
-  browsersCount = args.browsers_count
+  browsersCount = args.browsers_count,
+  w3cBeta = args.w3c_beta
 )
