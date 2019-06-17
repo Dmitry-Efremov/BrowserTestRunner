@@ -11,7 +11,8 @@ webDriverWaitTimeout = 300
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
           maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
-          oneByOne = False, avoidProxy = False, testsUrls = None, browsersCount = None, azureRepository = None, enableTestLogs = False, w3cBeta = False ):
+          oneByOne = False, retries = 1, avoidProxy = False, testsUrls = None, browsersCount = None, azureRepository = None,
+          enableTestLogs = False, w3cBeta = False):
 
   driver = None
   drivers = []
@@ -58,7 +59,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
         for execution in executions:
           drivers.append( execution.result() )
 
-      runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
+      runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output, retries = retries )
 
       if not ( azureRepository is None ):
 
@@ -81,7 +82,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
           for execution in executions:
             drivers.append( execution.result() )
 
-        runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
+        runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output, retries = retries )
 
       else:
 
@@ -126,11 +127,11 @@ def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
 
-def runTestsInParallel( drivers, timeout, framework, output = None ):
+def runTestsInParallel( drivers, timeout, framework, output = None, retries = 1 ):
 
   log.writeln( "Running tests in parallel, drivers count: %i" % ( len(drivers) ) )
 
-  results = framework.runTestsInParallel( drivers, timeout )
+  results = framework.runTestsInParallel( drivers, timeout, retries )
 
   jsonResults = results[ "json" ]
   xmlResults = results[ "junit" ]
