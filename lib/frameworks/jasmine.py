@@ -10,12 +10,12 @@ webDriverWaitTimeout = 300
 
 from concurrent import futures
 
-def runTestsInParallel(drivers, timeout):
+def runTestsInParallel(drivers, timeout, retries):
     log.write("Calculating number of tests ... ")
     tests = getTests( drivers[0]["driver"], drivers[0]["testsUrl"] )
     log.writeln("%d tests found" % len( tests ))
 
-    testResults = runTestsInPoolDrivers(drivers, tests)
+    testResults = runTestsInPoolDrivers(drivers, tests, retries)
 
     suites = groupTestSuites( map(lambda x: x["json"], testResults) )
     xmlSuites = map(lambda x: ElementTree.tostring(x), groupXmlSuites( map(lambda x: x[ "junit" ], testResults) ))
@@ -29,7 +29,7 @@ def runTestsInParallel(drivers, timeout):
         "junit": '<?xml version="1.0" encoding="UTF-8" ?>\n<testsuites>\n%s\n</testsuites>\n' % "\n".join(xmlSuites)
     }
 
-def runTestsInPoolDrivers(drivers, tests):
+def runTestsInPoolDrivers(drivers, tests, retries):
     test_results = []
     counter = 0
 
@@ -37,7 +37,7 @@ def runTestsInPoolDrivers(drivers, tests):
         executions = []
         for test in tests:
             counter += 1
-            executions.append( executor.submit(runTestByDriversPool, drivers, test, counter) )
+            executions.append( executor.submit(runTestByDriversPool, drivers, test, counter, retries) )
         for execution in executions:
             exception = execution.exception()
             if exception is not None:
@@ -49,11 +49,10 @@ def runTestsInPoolDrivers(drivers, tests):
 
     return test_results
 
-def runTestByDriversPool(driversPool, test, counter):
+def runTestByDriversPool(driversPool, test, counter, retries):
     driver = driversPool.pop()
     test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )
     log.writeln( "Running test %d in session %s: %s" % ( counter, driver['driver'].session_id, test ) )
-    retries = 5
     passed = False
     testResult = None
     while not passed and retries:
