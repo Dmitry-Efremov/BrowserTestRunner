@@ -7,7 +7,7 @@ def run_selenium_process():
 
   global selenium_proc
 
-  cmd = [ 'java', '-jar', os.path.abspath( os.path.join( csd, '..', 'vendors', 'selenium-server-standalone-2.47.1.jar' ) ) ]
+  cmd = [ 'java', '-jar', os.path.abspath( os.path.join( csd, '..', 'vendors', 'selenium-server-standalone-3.141.59.jar' ) ) ]
 
   selenium_env = os.environ.copy()
   selenium_env[ "PATH" ] = selenium_env[ "PATH" ] + os.pathsep + os.path.abspath( os.path.join( csd, '..', 'vendors' ) )
