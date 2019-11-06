@@ -4,14 +4,15 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
-from lib import selenium_process, log
+from lib import selenium_process, log, capabilities
 
 webDriverWaitTimeout = 300
 
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
           maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
-          oneByOne = False, avoidProxy = False, testsUrls = None, browsersCount = None, azureRepository = None, enableTestLogs = False ):
+          oneByOne = False, retries = 1, avoidProxy = False, testsUrls = None, browsersCount = None, azureRepository = None,
+          enableTestLogs = False, w3cBeta = False):
 
   driver = None
   drivers = []
@@ -27,39 +28,21 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
   try:
 
-    driver_browser = getattr( webdriver.DesiredCapabilities, browser.upper() )
+    driver_browser = capabilities.get(
+        w3cBeta = w3cBeta,
+        browser = browser,
+        browserVersion = browserVersion,
+        platform = platform,
+        enableTestLogs = enableTestLogs,
+        screenResolution = screenResolution,
+        maxDuration = maxDuration,
+        tunnelId = tunnelId,
+        idleTimeout = idleTimeout,
+        prerunScriptUrl = prerunScriptUrl,
+        avoidProxy = avoidProxy,
+        chromeOptions = chromeOptions)
 
-    if chromeOptions:
-      opts = chromeOptions.split( "," )
-      driver_browser[ "chromeOptions" ] = { "args": opts }
-
-    if not ( browserVersion is None ):
-      driver_browser[ "version" ] = browserVersion
-
-    if not ( screenResolution is None ):
-      driver_browser[ "screenResolution" ] = screenResolution
-
-    if not ( platform is None ):
-      driver_browser[ "platform" ] = platform
-
-    if not ( maxDuration is None ):
-      driver_browser[ "maxDuration" ] = maxDuration
-
-    if not ( tunnelId is None ):
-      driver_browser[ "tunnelIdentifier" ] = tunnelId
-
-    if not ( idleTimeout is None ):
-      driver_browser[ "idleTimeout" ] = idleTimeout
-
-    if not ( prerunScriptUrl is None ):
-      driver_browser[ "prerun" ] = { "executable": prerunScriptUrl, "background": "false" }
-
-    if avoidProxy:
-      driver_browser[ "avoidProxy" ] = True
-
-    if enableTestLogs:
-      driver_browser['loggingPrefs'] = {'performance': 'ALL', 'browser':'ALL', 'driver':'ALL'}
-
+    log.writeln( str( driver_browser ) )
     log.writeln( "Connecting to selenium ..." )
 
     if browsersCount:
@@ -76,7 +59,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
         for execution in executions:
           drivers.append( execution.result() )
 
-      runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
+      runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output, retries = retries )
 
       if not ( azureRepository is None ):
 
@@ -99,7 +82,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
           for execution in executions:
             drivers.append( execution.result() )
 
-        runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output )
+        runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output, retries = retries )
 
       else:
 
@@ -144,11 +127,11 @@ def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
 
-def runTestsInParallel( drivers, timeout, framework, output = None ):
+def runTestsInParallel( drivers, timeout, framework, output = None, retries = 1 ):
 
   log.writeln( "Running tests in parallel, drivers count: %i" % ( len(drivers) ) )
 
-  results = framework.runTestsInParallel( drivers, timeout )
+  results = framework.runTestsInParallel( drivers, timeout, retries )
 
   jsonResults = results[ "json" ]
   xmlResults = results[ "junit" ]

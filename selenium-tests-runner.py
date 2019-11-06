@@ -20,11 +20,13 @@ argsParser.add_argument( "--output", help = "Filename to store JUnit xml results
 argsParser.add_argument( "--chrome-options", help = "Options for Chrome webdriver separated by commas, example: --chrome-options=\"--js-flags=--expose-gc,--enable-precise-memory-info\"" )
 argsParser.add_argument( "--prerun-script-url", help = "Url of the script executed before run." )
 argsParser.add_argument( "--one-by-one", action = "store_true", help = "Run tests one by one." )
+argsParser.add_argument( "--retries", help =  "Amount of retries for each test", type = int, default = 1)
 argsParser.add_argument( "--avoid-proxy", action = "store_true", help = "Configures Sauce Labs to avoid using the  Selenium HTTP proxy server and have browsers communicate directly with your servers. Firefox and Google Chrome under WebDriver aren't affected by this flag." )
 argsParser.add_argument( "--tests-urls", help = "URLs where tests are served for parallel runs.",  nargs = '+' )
 argsParser.add_argument( "--enable-test-logs", action = "store_true", help = "Print to console browser, performance and driver logs after running tests for debug purposes" )
 argsParser.add_argument( "--azure-repository", help = "Name of the repository in Azure to store tests results" )
 argsParser.add_argument( "--browsers-count", help = "Number of selenium servers to run tests" )
+argsParser.add_argument( "--w3c-beta", action = "store_true", help = "Use new w3c format to generate capabilities" )
 
 args = argsParser.parse_args()
 
@@ -49,9 +51,11 @@ Main(
   chromeOptions = args.chrome_options,
   prerunScriptUrl = args.prerun_script_url,
   oneByOne = args.one_by_one,
+  retries = args.retries,
   avoidProxy = args.avoid_proxy,
   testsUrls = args.tests_urls,
   enableTestLogs = args.enable_test_logs,
   azureRepository = args.azure_repository,
-  browsersCount = args.browsers_count
+  browsersCount = args.browsers_count,
+  w3cBeta = args.w3c_beta
 )
