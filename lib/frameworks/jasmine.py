@@ -6,7 +6,7 @@ from itertools import groupby
 from xml.etree import ElementTree
 from lib import log
 
-webDriverWaitTimeout = 300
+webDriverWaitTimeout = 1200
 
 from concurrent import futures
 

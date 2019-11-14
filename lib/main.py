@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from lib import selenium_process, log, capabilities
 
-webDriverWaitTimeout = 300
+webDriverWaitTimeout = 1200
 
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
