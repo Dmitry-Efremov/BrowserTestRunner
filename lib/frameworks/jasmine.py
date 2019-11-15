@@ -66,7 +66,7 @@ def runTestByDriversPool( driversPool, test, counter, retries, enableTestLogs ):
         testResult = runTest(driver["driver"], test_url)
 
         if enableTestLogs:
-            log.writeTestLogs( driver )
+            log.writeTestLogs( driver["driver"] )
         
         if isPassed(testResult["json"]):
             log.writeln( "test %d: %s ... passed" % (counter, test))
