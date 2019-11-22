@@ -1,16 +1,13 @@
 import os, sys, requests, retrying, json
-from datetime import datetime
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
 from lib import selenium_process, log, capabilities
 
-webDriverWaitTimeout = 300
-
 
 def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, browserVersion = None, screenResolution = None,
-          maxDuration = None, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
+          maxDuration = 300, tunnelId = None, idleTimeout = None, output = None, chromeOptions = None, prerunScriptUrl = None,
           oneByOne = False, retries = 1, avoidProxy = False, testsUrls = None, browsersCount = None, azureRepository = None,
           enableTestLogs = False, w3cBeta = False):
 
@@ -54,12 +51,12 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
         executions = []
 
         for idx in range( 0, int( browsersCount ) ):
-          executions.append( executor.submit( getDriver, seleniumServer.format(idx), driver_browser, testsUrl, True ) )
+          executions.append( executor.submit( getDriver, seleniumServer.format(idx), driver_browser, testsUrl, maxDuration, True ) )
 
         for execution in executions:
           drivers.append( execution.result() )
 
-      runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output, retries = retries )
+      runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output, retries = retries, enableTestLogs = enableTestLogs )
 
       if not ( azureRepository is None ):
 
@@ -77,16 +74,16 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
           executions = []
 
           for testsUrl in testsUrls:
-            executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl ) )
+            executions.append( executor.submit( getDriver, seleniumServer, driver_browser, testsUrl, maxDuration ) )
 
           for execution in executions:
             drivers.append( execution.result() )
 
-        runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output, retries = retries )
+        runTestsInParallel( list( drivers ), timeout = maxDuration, framework = framework, output = output, retries = retries, enableTestLogs = enableTestLogs )
 
       else:
 
-        driver = getDriver( seleniumServer, driver_browser, testsUrl )
+        driver = getDriver( seleniumServer, driver_browser, testsUrl, maxDuration )
 
         runTests( driver = driver['driver'], url = testsUrl, timeout = maxDuration, framework = framework, output = output, oneByOne = oneByOne, enableTestLogs = enableTestLogs )
 
@@ -101,37 +98,28 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     selenium_process.stop_selenium_process()
 
-def getDriver( seleniumServer, driver_browser, testsUrl, waitForSelenium = False ):
+def getDriver( seleniumServer, driver_browser, testsUrl, timeout, waitForSelenium = False ):
 
   if waitForSelenium:
     waitSeleniumPort( seleniumServer )
 
   driver = webdriver.Remote( seleniumServer, driver_browser )
-  driver.set_page_load_timeout( webDriverWaitTimeout )
+  driver.set_page_load_timeout( timeout )
 
   log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
 
   return { "driver": driver, "testsUrl": testsUrl }
-
-def getTestLog( driver, log_type ):
-
-  log.writeln( log_type )
-
-  for entry in driver.get_log(log_type):
-
-    entry[ u'timestamp' ] = datetime.fromtimestamp(int(entry[ u'timestamp' ])/1000).strftime('%H:%M:%S')
-    log.writeln(str(entry))
 
 @retrying.retry( stop_max_attempt_number = 120, wait_fixed = 3000, retry_on_result = lambda status: status != 200 )
 def waitSeleniumPort( url ):
 
   return requests.get( url ).status_code
 
-def runTestsInParallel( drivers, timeout, framework, output = None, retries = 1 ):
+def runTestsInParallel( drivers, timeout, framework, output = None, retries = 1, enableTestLogs = False ):
 
   log.writeln( "Running tests in parallel, drivers count: %i" % ( len(drivers) ) )
 
-  results = framework.runTestsInParallel( drivers, timeout, retries )
+  results = framework.runTestsInParallel( drivers, timeout, retries, enableTestLogs )
 
   jsonResults = results[ "json" ]
   xmlResults = results[ "junit" ]
@@ -161,8 +149,7 @@ def runTests( driver, url, timeout, framework, output = None, oneByOne = False, 
     WebDriverWait( driver, timeout ).until( framework.isFinished )
 
     if enableTestLogs:
-      for cur_type in ['browser', 'performance', 'driver']:
-        getTestLog(driver, cur_type)
+      log.writeTestLogs( driver )
 
     log.writeln( "Retrieving results ..." )
 

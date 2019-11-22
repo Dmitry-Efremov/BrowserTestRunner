@@ -6,16 +6,16 @@ from itertools import groupby
 from xml.etree import ElementTree
 from lib import log
 
-webDriverWaitTimeout = 300
-
 from concurrent import futures
 
-def runTestsInParallel(drivers, timeout, retries):
+
+def runTestsInParallel( drivers, timeout, retries, enableTestLogs ):
+
     log.write("Calculating number of tests ... ")
-    tests = getTests( drivers[0]["driver"], drivers[0]["testsUrl"] )
+    tests = getTests( drivers[0]["driver"], drivers[0]["testsUrl"], timeout )
     log.writeln("%d tests found" % len( tests ))
 
-    testResults = runTestsInPoolDrivers(drivers, tests, retries)
+    testResults = runTestsInPoolDrivers( drivers, tests, retries, timeout, enableTestLogs )
 
     suites = groupTestSuites( map(lambda x: x["json"], testResults) )
     xmlSuites = map(lambda x: ElementTree.tostring(x), groupXmlSuites( map(lambda x: x[ "junit" ], testResults) ))
@@ -29,7 +29,8 @@ def runTestsInParallel(drivers, timeout, retries):
         "junit": '<?xml version="1.0" encoding="UTF-8" ?>\n<testsuites>\n%s\n</testsuites>\n' % "\n".join(xmlSuites)
     }
 
-def runTestsInPoolDrivers(drivers, tests, retries):
+def runTestsInPoolDrivers( drivers, tests, retries, timeout, enableTestLogs ):
+
     test_results = []
     counter = 0
 
@@ -37,7 +38,7 @@ def runTestsInPoolDrivers(drivers, tests, retries):
         executions = []
         for test in tests:
             counter += 1
-            executions.append( executor.submit(runTestByDriversPool, drivers, test, counter, retries) )
+            executions.append( executor.submit( runTestByDriversPool, drivers, test, counter, retries, timeout, enableTestLogs ) )
         for execution in executions:
             exception = execution.exception()
             if exception is not None:
@@ -49,15 +50,22 @@ def runTestsInPoolDrivers(drivers, tests, retries):
 
     return test_results
 
-def runTestByDriversPool(driversPool, test, counter, retries):
+def runTestByDriversPool( driversPool, test, counter, retries, timeout, enableTestLogs ):
+
     driver = driversPool.pop()
     test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )
     log.writeln( "Running test %d in session %s: %s" % ( counter, driver['driver'].session_id, test ) )
     passed = False
     testResult = None
+
     while not passed and retries:
+
         retries -= 1
-        testResult = runTest(driver["driver"], test_url)
+        testResult = runTest( driver["driver"], test_url, timeout )
+
+        if enableTestLogs:
+            log.writeTestLogs( driver["driver"] )
+
         if isPassed(testResult["json"]):
             log.writeln( "test %d: %s ... passed" % (counter, test))
             passed = True
@@ -71,10 +79,8 @@ def runTestByDriversPool(driversPool, test, counter, retries):
 
 def runTests( driver, url, timeout ):
 
-    # timeout is ignored
-
     log.write( "Calculating number of tests ... " )
-    tests = getTests( driver, url )
+    tests = getTests( driver, url, timeout )
 
     log.writeln( "%d tests found" % len( tests ) )
 
@@ -96,7 +102,7 @@ def runTests( driver, url, timeout ):
 
             try:
 
-                testResult = runTest( driver, "%s?spec=%s" % ( url, urllib.quote( test ) ) )
+                testResult = runTest( driver, "%s?spec=%s" % ( url, urllib.quote( test ) ), timeout )
 
                 if isPassed( testResult[ "json" ] ):
                     passed = True
@@ -127,10 +133,10 @@ def runTests( driver, url, timeout ):
     return testResults
 
 @retrying.retry( stop_max_attempt_number = 5, wait_fixed = 5000 )
-def getTests( driver, url ):
+def getTests( driver, url, timeout ):
 
     driver.get( "%s?spec=SkipAll" % url )
-    WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
+    WebDriverWait( driver, timeout ).until( isFinished )
 
     selector = "return JSON.stringify( jasmine.getEnv().currentRunner().specs().map( function( spec ) { return spec.getFullName(); } ) )"
     specs = json.loads( driver.execute_script( selector ) )
@@ -138,18 +144,18 @@ def getTests( driver, url ):
     return specs
 
 @retrying.retry( stop_max_attempt_number = 5, wait_fixed = 30000 )
-def runTest( driver, url ):
+def runTest( driver, url, timeout ):
 
     driver.get( url )
 
-    WebDriverWait( driver, webDriverWaitTimeout ).until( isFinished )
+    WebDriverWait( driver, timeout ).until( isFinished )
 
-    testResult = WebDriverWait( driver, webDriverWaitTimeout ).until( getResults )
+    testResult = WebDriverWait( driver, timeout ).until( getResults )
 
     jsonResult = filterByDuration( testResult[ "suites" ] ).pop()
     reduceSuite( jsonResult )
 
-    xmlResult = reduceXmlSuite( ElementTree.fromstring( WebDriverWait( driver, webDriverWaitTimeout ).until( getXmlResults ) ) )
+    xmlResult = reduceXmlSuite( ElementTree.fromstring( WebDriverWait( driver, timeout ).until( getXmlResults ) ) )
 
     return {
 
