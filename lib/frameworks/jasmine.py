@@ -147,6 +147,8 @@ def getTests( driver, url, timeout ):
 def runTest( driver, url, timeout ):
 
     driver.get( url )
+    if "#" in url:
+        driver.refresh()
 
     WebDriverWait( driver, timeout ).until( isFinished )
 
