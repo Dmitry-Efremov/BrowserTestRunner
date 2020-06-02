@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import json, retrying, urllib, sys
+from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from itertools import groupby
 from xml.etree import ElementTree
@@ -12,7 +13,13 @@ from concurrent import futures
 def runTestsInParallel( drivers, timeout, retries, enableTestLogs ):
 
     log.write("Calculating number of tests ... ")
-    tests = getTests( drivers[0]["driver"], drivers[0]["testsUrl"], timeout )
+
+    driver = webdriver.Remote( drivers[0]["seleniumServer"], drivers[0]["driver_browser"] )
+    driver.set_page_load_timeout( drivers[0]["timeout"] )
+
+    tests = getTests( driver, drivers[0]["testsUrl"], timeout )
+    driver.quit()
+
     log.writeln("%d tests found" % len( tests ))
 
     testResults = runTestsInPoolDrivers( drivers, tests, retries, timeout, enableTestLogs )
@@ -53,18 +60,22 @@ def runTestsInPoolDrivers( drivers, tests, retries, timeout, enableTestLogs ):
 def runTestByDriversPool( driversPool, test, counter, retries, timeout, enableTestLogs ):
 
     driver = driversPool.pop()
-    test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test, safe=',()' ) )
-    log.writeln( "Running test %d in session %s: %s" % ( counter, driver['driver'].session_id, test ) )
+    test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )
+
+    driver_obj = webdriver.Remote( driver["seleniumServer"], driver["driver_browser"] )
+    driver_obj.set_page_load_timeout( driver["timeout"] )
+
+    log.writeln( "Running test %d in session %s: %s" % ( counter, driver_obj.session_id, test ) )
     passed = False
     testResult = None
 
     while not passed and retries:
 
         retries -= 1
-        testResult = runTest( driver["driver"], test_url, timeout )
+        testResult = runTest( driver_obj, test_url, timeout )
 
         if enableTestLogs:
-            log.writeTestLogs( driver["driver"] )
+            log.writeTestLogs( driver_obj )
 
         if isPassed(testResult["json"]):
             log.writeln( "test %d: %s ... passed" % (counter, test))
@@ -73,6 +84,8 @@ def runTestByDriversPool( driversPool, test, counter, retries, timeout, enableTe
             log.writeln("test %d: %s ... failed" % (counter, test))
             log.writeln(str(testResult))
             log.writeln("RETRY test %d: %s" % (counter, test))
+
+    driver_obj.quit()
 
     driversPool.append( driver )
     return testResult
@@ -147,14 +160,6 @@ def getTests( driver, url, timeout ):
 def runTest( driver, url, timeout ):
 
     driver.get( url )
-    if "#" in url:
-        curUrl = driver.current_url
-        if driver.current_url == url:
-            driver.refresh()
-        else:
-            log.writeln( "Was redirected from: '%s' to: '%s'" % (url, curUrl ) )
-            return {"json": {"suites": [{"specs": [{"passed": False}]}]}}
-
     WebDriverWait( driver, timeout ).until( isFinished )
 
     testResult = WebDriverWait( driver, timeout ).until( getResults )
