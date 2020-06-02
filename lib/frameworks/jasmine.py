@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import json, retrying, urllib, sys
+from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from itertools import groupby
 from xml.etree import ElementTree
@@ -12,7 +13,13 @@ from concurrent import futures
 def runTestsInParallel( drivers, timeout, retries, enableTestLogs ):
 
     log.write("Calculating number of tests ... ")
-    tests = getTests( drivers[0]["driver"], drivers[0]["testsUrl"], timeout )
+
+    driver = webdriver.Remote( drivers[0]["seleniumServer"], drivers[0]["driver_browser"] )
+    driver.set_page_load_timeout( drivers[0]["timeout"] )
+
+    tests = getTests( driver, drivers[0]["testsUrl"], timeout )
+    driver.quit()
+
     log.writeln("%d tests found" % len( tests ))
 
     testResults = runTestsInPoolDrivers( drivers, tests, retries, timeout, enableTestLogs )
@@ -54,17 +61,15 @@ def runTestByDriversPool( driversPool, test, counter, retries, timeout, enableTe
 
     driver = driversPool.pop()
     test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )
-    log.writeln( "Running test %d in session %s: %s" % ( counter, driver['driver'].session_id, test ) )
+
+    log.writeln( "Running test %d: %s" % ( counter, test ) )
     passed = False
     testResult = None
 
     while not passed and retries:
 
         retries -= 1
-        testResult = runTest( driver["driver"], test_url, timeout )
-
-        if enableTestLogs:
-            log.writeTestLogs( driver["driver"] )
+        testResult = runTestInSeperateBrowser( driver, test_url, timeout, enableTestLogs )
 
         if isPassed(testResult["json"]):
             log.writeln( "test %d: %s ... passed" % (counter, test))
@@ -147,7 +152,6 @@ def getTests( driver, url, timeout ):
 def runTest( driver, url, timeout ):
 
     driver.get( url )
-
     WebDriverWait( driver, timeout ).until( isFinished )
 
     testResult = WebDriverWait( driver, timeout ).until( getResults )
@@ -156,6 +160,34 @@ def runTest( driver, url, timeout ):
     reduceSuite( jsonResult )
 
     xmlResult = reduceXmlSuite( ElementTree.fromstring( WebDriverWait( driver, timeout ).until( getXmlResults ) ) )
+
+    return {
+
+        "json": jsonResult,
+        "junit": xmlResult,
+        "test_url": url
+    }
+
+@retrying.retry( stop_max_attempt_number = 5, wait_fixed = 30000 )
+def runTestInSeperateBrowser( driver_options, url, timeout, enableTestLogs):
+
+    driver = webdriver.Remote( driver_options["seleniumServer"], driver_options["driver_browser"] )
+    driver.set_page_load_timeout( driver_options["timeout"] )
+
+    driver.get( url )
+    WebDriverWait( driver, timeout ).until( isFinished )
+
+    testResult = WebDriverWait( driver, timeout ).until( getResults )
+
+    jsonResult = filterByDuration( testResult[ "suites" ] ).pop()
+    reduceSuite( jsonResult )
+
+    xmlResult = reduceXmlSuite( ElementTree.fromstring( WebDriverWait( driver, timeout ).until( getXmlResults ) ) )
+
+    if enableTestLogs:
+        log.writeTestLogs(driver)
+
+    driver.quit()
 
     return {
 
