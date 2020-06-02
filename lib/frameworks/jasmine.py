@@ -53,7 +53,7 @@ def runTestsInPoolDrivers( drivers, tests, retries, timeout, enableTestLogs ):
 def runTestByDriversPool( driversPool, test, counter, retries, timeout, enableTestLogs ):
 
     driver = driversPool.pop()
-    test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test ) )
+    test_url = "%s?spec=%s" % ( driver["testsUrl"], urllib.quote( test, safe=',()' ) )
     log.writeln( "Running test %d in session %s: %s" % ( counter, driver['driver'].session_id, test ) )
     passed = False
     testResult = None
@@ -148,7 +148,12 @@ def runTest( driver, url, timeout ):
 
     driver.get( url )
     if "#" in url:
-        driver.refresh()
+        curUrl = driver.current_url
+        if driver.current_url == url:
+            driver.refresh()
+        else:
+            log.writeln( "Was redirected from: '%s' to: '%s'" % (url, curUrl ) )
+            return {"json": {"suites": [{"specs": [{"passed": False}]}]}}
 
     WebDriverWait( driver, timeout ).until( isFinished )
 
