@@ -30,8 +30,8 @@ argsParser.add_argument( "--w3c-beta", action = "store_true", help = "Use new w3
 
 args = argsParser.parse_args()
 
-print "Arguments:"
-print args
+print ("Arguments:")
+print (args)
 
 from lib.main import Main
 

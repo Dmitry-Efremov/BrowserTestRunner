@@ -1,3 +1,4 @@
+from concurrent.futures.thread import ThreadPoolExecutor
 import os, sys, requests, retrying, json
 
 from selenium import webdriver
@@ -46,7 +47,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
       from concurrent import futures
 
-      with futures.ThreadPoolExecutor( max_workers = int( browsersCount ) ) as executor:
+      with ThreadPoolExecutor( max_workers = int( browsersCount ) ) as executor:
 
         executions = []
 
@@ -69,7 +70,7 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
         from concurrent import futures
 
-        with futures.ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
+        with ThreadPoolExecutor( max_workers=len(testsUrls) ) as executor:
 
           executions = []
 
