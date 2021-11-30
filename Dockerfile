@@ -1,4 +1,4 @@
-FROM python:2.7-alpine
+FROM python:3-alpine
 
 RUN apk add --no-cache vim build-base libffi-dev openssl-dev
 

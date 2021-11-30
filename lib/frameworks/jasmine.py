@@ -1,5 +1,6 @@
 # coding: utf-8
 
+from concurrent.futures.thread import ThreadPoolExecutor
 import json, retrying, urllib, sys
 from selenium.webdriver.support.ui import WebDriverWait
 from itertools import groupby
@@ -34,7 +35,7 @@ def runTestsInPoolDrivers( drivers, tests, retries, timeout, enableTestLogs ):
     test_results = []
     counter = 0
 
-    with futures.ThreadPoolExecutor(max_workers=len(drivers)) as executor:
+    with ThreadPoolExecutor(max_workers=len(drivers)) as executor:
         executions = []
         for test in tests:
             counter += 1

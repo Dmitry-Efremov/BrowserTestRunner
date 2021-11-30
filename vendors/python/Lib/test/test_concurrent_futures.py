@@ -1,3 +1,4 @@
+from concurrent.futures.thread import ThreadPoolExecutor
 import test.support
 
 # Skip tests if _multiprocessing wasn't built.
@@ -87,7 +88,7 @@ class ExecutorMixin:
 
 
 class ThreadPoolMixin(ExecutorMixin):
-    executor_type = futures.ThreadPoolExecutor
+    executor_type = ThreadPoolExecutor
 
 
 class ProcessPoolMixin(ExecutorMixin):
@@ -136,7 +137,7 @@ class ThreadPoolShutdownTest(ThreadPoolMixin, ExecutorShutdownTest, unittest.Tes
             t.join()
 
     def test_context_manager_shutdown(self):
-        with futures.ThreadPoolExecutor(max_workers=5) as e:
+        with ThreadPoolExecutor(max_workers=5) as e:
             executor = e
             self.assertEqual(list(e.map(abs, range(-5, 5))),
                              [5, 4, 3, 2, 1, 0, 1, 2, 3, 4])
@@ -145,7 +146,7 @@ class ThreadPoolShutdownTest(ThreadPoolMixin, ExecutorShutdownTest, unittest.Tes
             t.join()
 
     def test_del_shutdown(self):
-        executor = futures.ThreadPoolExecutor(max_workers=5)
+        executor = ThreadPoolExecutor(max_workers=5)
         executor.map(abs, range(-5, 5))
         threads = executor._threads
         del executor
