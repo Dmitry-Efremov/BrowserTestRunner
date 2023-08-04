@@ -117,7 +117,7 @@ def getDriver( seleniumServer, driver_browser, testsUrl, timeout, waitForSeleniu
     except Exception as ex:
       log.writeln( "Selenium sessionfailed to start: %s" % ( ex ) )
       errCount += 1
-  raise Error( "Can't start Selenium session" ) 
+  raise Exception( "Can't start Selenium session" ) 
 
 
 @retrying.retry( stop_max_attempt_number = 120, wait_fixed = 3000, retry_on_result = lambda status: status != 200 )
