@@ -1,5 +1,5 @@
 from concurrent.futures.thread import ThreadPoolExecutor
-import os, sys, requests, retrying, json
+import os, sys, requests, retrying, json, time
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -117,6 +117,8 @@ def getDriver( seleniumServer, driver_browser, testsUrl, timeout, waitForSeleniu
     except Exception as ex:
       log.writeln( "Selenium sessionfailed to start: %s" % ( ex ) )
       errCount += 1
+      time.sleep(5)
+
   raise Exception( "Can't start Selenium session" ) 
 
 
