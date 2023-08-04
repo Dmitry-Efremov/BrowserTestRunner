@@ -99,17 +99,25 @@ def Main( testsUrl, browser, framework, seleniumServer = None, platform = None, 
 
     selenium_process.stop_selenium_process()
 
-def getDriver( seleniumServer, driver_browser, testsUrl, timeout, waitForSelenium = False ):
+def getDriver( seleniumServer, driver_browser, testsUrl, timeout, waitForSelenium = True ):
 
   if waitForSelenium:
     waitSeleniumPort( seleniumServer )
 
-  driver = webdriver.Remote( seleniumServer, driver_browser )
-  driver.set_page_load_timeout( timeout )
+  errCount = 0
+  while (errCount < 5):
+    try: 
+      driver = webdriver.Remote( seleniumServer, driver_browser )
+      driver.set_page_load_timeout( timeout )
 
-  log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
+      log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
 
-  return { "driver": driver, "testsUrl": testsUrl }
+      return { "driver": driver, "testsUrl": testsUrl }
+    except ex:
+      log.writeln( "Selenium sessionfailed to start: %s" % ( ex ) )
+      errCount += 1
+  raise Error( "Can't start Selenium session" ) 
+
 
 @retrying.retry( stop_max_attempt_number = 120, wait_fixed = 3000, retry_on_result = lambda status: status != 200 )
 def waitSeleniumPort( url ):
