@@ -106,6 +106,7 @@ def getDriver( seleniumServer, driver_browser, testsUrl, timeout, waitForSeleniu
 
   errCount = 0
   while (errCount < 5):
+    log.writeln( "Trying to get driver #%d" % ( errCount+1 ) )
     try: 
       driver = webdriver.Remote( seleniumServer, driver_browser )
       driver.set_page_load_timeout( timeout )
@@ -113,7 +114,7 @@ def getDriver( seleniumServer, driver_browser, testsUrl, timeout, waitForSeleniu
       log.writeln( "Selenium session id: %s, browser: %s" % ( driver.session_id, seleniumServer ) )
 
       return { "driver": driver, "testsUrl": testsUrl }
-    except ex:
+    except Exception as ex:
       log.writeln( "Selenium sessionfailed to start: %s" % ( ex ) )
       errCount += 1
   raise Error( "Can't start Selenium session" ) 
