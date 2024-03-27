@@ -8,7 +8,7 @@ argsParser = argparse.ArgumentParser( description = "Run selenium tests in speci
 
 argsParser.add_argument( "--selenium-server", help = "URL of a selenium server. A selenium server will be started locally if this argument is not specified." )
 argsParser.add_argument( "--tests-url", help = "URL where tests are served", required = True )
-argsParser.add_argument( "--platform", help = "Platform to run browser, default: \"Windows 7\"", default = "Windows 7" )
+argsParser.add_argument( "--platform", help = "Platform to run browser" )
 argsParser.add_argument( "--browser", help = "Browser to run, e.g. \"chrome\", \"firefox\", \"internetexplorer\", \"edge\"", required = True )
 argsParser.add_argument( "--browser-version", help = "Version of browser" )
 argsParser.add_argument( "--screen-resolution", help = "Screen resolution, default: 1024x768", default = "1024x768" )
